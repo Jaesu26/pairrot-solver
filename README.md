@@ -1,1 +1,1 @@
-# pairrot-solver
+# Pairrot Solver
