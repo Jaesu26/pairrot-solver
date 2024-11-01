@@ -1,3 +1,5 @@
+from functools import cache
+
 from pairrot.constants import (
     BASE_CODE,
     CHOSUNG_BASE,
@@ -21,13 +23,13 @@ def get_maybe_possible_words(word2label: dict[Word, Label]):
     return [word for word, label in word2label.items() if label == MAYBE_POSSIBLE]
 
 
+@cache
 def decompose_hangul(syllable: Syllable) -> tuple[Jamo, ...]:
     """한글 자소 전체(초성, 중성, 종성)를 분해하여 반환합니다."""
-    # 한글 유니코드 범위에 있는지 확인
     if len(syllable) != 1:
         raise ValueError("Input's length must be 1.")
     if not is_hangul(syllable):
-        raise ValueError("입력 글자가 한글이 아닙니다.")  # 한글이 아니면 에러
+        raise ValueError("입력 글자가 한글이 아닙니다.")
     return extract_chosung(syllable), *extract_jungsung(syllable), *extract_jongsung(syllable)
 
 
@@ -35,6 +37,7 @@ def is_hangul(syllable: Syllable) -> bool:
     return BASE_CODE <= ord(syllable) <= BASE_CODE + 11171
 
 
+@cache
 def extract_chosung(syllable: Syllable) -> Jamo:
     """한글의 초성을 분해하여 반환합니다."""
     code = ord(syllable) - BASE_CODE
@@ -42,6 +45,7 @@ def extract_chosung(syllable: Syllable) -> Jamo:
     return CHOSUNGS[chosung_index]
 
 
+@cache
 def extract_jungsung(syllable: Syllable) -> tuple[Jamo, ...]:
     """한글의 중성을 분해하여 개별 모음으로 반환합니다."""
     code = ord(syllable) - BASE_CODE
@@ -50,6 +54,7 @@ def extract_jungsung(syllable: Syllable) -> tuple[Jamo, ...]:
     return JUNGSUNG_SPLIT_MAP.get(jungsung_char, (jungsung_char,))
 
 
+@cache
 def extract_jongsung(syllable: Syllable) -> tuple[Jamo, ...]:
     """한글의 종성을 분해하여 개별 자음으로 반환합니다."""
     code = ord(syllable) - BASE_CODE

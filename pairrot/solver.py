@@ -1,68 +1,91 @@
-from copy import deepcopy
-from typing import Literal
+from collections import defaultdict
 
-from pairrot.types import Jamo, Label, Syllable, Word
-from pairrot.utils import decompose_hangul, get_maybe_possible_words, get_possible_words
+import numpy as np
+
+from pairrot.types import Word
+from pairrot.utils import get_maybe_possible_words, get_possible_words
 from pairrot.vocab import _VOCAB
-
-Fruit = Literal["사과", "바나나", "가지", "마늘", "버섯", "당근"]
+from pairrot.hints import Hint
 
 
 class Solver:
     def __init__(self):
         self.word2label = _VOCAB
-        self.candidates = deepcopy(_VOCAB)
+        self.maybe_possible_words_at_least = get_possible_words(_VOCAB) + get_maybe_possible_words(_VOCAB)
+        self.candidates = self.maybe_possible_words_at_least.copy()
+
+    def select(self) -> tuple[Word, float]:
+        """제시할 단어를 선택한다"""
+        word2scores: dict[Word, list[int]] = defaultdict(list)
+        for current_word in self.maybe_possible_words_at_least:
+            word2score = compute_score(self.candidates, current_word)
+            for word, score in word2score.items():
+                word2scores[word].append(score)
+        best_word = "None"
+        best_score = 1e8  # Inf
+        for word, scores in word2scores.items():
+            scores = np.array(scores)
+            current_score = np.mean(scores)
+            if current_score < best_score:
+                best_word = word
+                best_score = current_score
+        possible_words = []
+        for word in self.candidates:
+            syllable_1st, syllable_2nd = word
+            first_hint, second_hint = compute_hints(word, best_word)
+            if (
+                first_hint.can_be_answer(syllable_direct=syllable_1st, syllable_indirect=syllable_2nd)
+                and second_hint.can_be_answer(syllable_direct=syllable_2nd, syllable_indirect=syllable_1st)
+            ):
+                possible_words.append(word)
+        self.candidates = possible_words
+        return best_word, best_score
+
+    def feedback(self, first_hint: Hint, second_hint: Hint):
+        possible_words = []
+        for word in self.candidates:
+            syllable_1st, syllable_2nd = word
+            if (
+                first_hint.can_be_answer(syllable_direct=syllable_1st, syllable_indirect=syllable_2nd)
+                and second_hint.can_be_answer(syllable_direct=syllable_2nd, syllable_indirect=syllable_1st)
+            ):
+                possible_words.append(word)
+        self.candidates = possible_words
 
 
-def compute(possible_words: list[Word], maybe_answer: Word):
-    if maybe_answer not in possible_words:
-        raise ValueError("maybe_answer 단어는 possible 단어 집합에 속해야 합니다.")
-    word2score: dict[Word, int] = dict()
-    possible_words_copy = []
+def compute_score(possible_words: list[Word], maybe_answer: Word):
+    # if maybe_answer not in possible_words:
+    #     raise ValueError("maybe_answer 단어는 possible 단어 집합에 속해야 합니다.")
+    word2score: dict[Word, int] = {}
     for candidate in possible_words:
-        first_fruit, second_fruit = compute_fruits(maybe_answer, candidate)
-        jamos_pred_1st, jamos_pred_2nd = decompose_hangul(candidate)
-        if first_fruit == "사과":
-            for word in possible_words:
-                jamos_1st, jamos_2nd = decompose_hangul(word)
-                if not (set(jamos_pred_1st) & set(jamos_1st)):
-                    continue
-                if not (set(jamos_pred_1st) & set(jamos_2nd)):
-                    continue
+        first_hint, second_hint = compute_hints(maybe_answer, candidate)
+        possible_words_copy = []
+        for word in possible_words:
+            syllable_1st, syllable_2nd = word
+            if (
+                first_hint.can_be_answer(syllable_direct=syllable_1st, syllable_indirect=syllable_2nd)
+                and second_hint.can_be_answer(syllable_direct=syllable_2nd, syllable_indirect=syllable_1st)
+            ):
                 possible_words_copy.append(word)
+        word2score[candidate] = len(possible_words_copy)
         # 과일 클래스가 있음 (정답 단어, 제시 단어를 입력으로 받음, 최적화 버전은 자모를 입력으로 받아야 함)
         # 쉽게 말해 정답 단어와 제시 단어를 비교한 결과가 과일 클래스란 의미임
         # 해당 정보가 업데이트됨 (init에서 ㄱㄱ)
         # call 함수에는 어떤 단어 하나를 제시함, 그럼 해당 단어가 베이스를 바탕으로 정답이 될 수 있는지 없는지 판단함
+    return word2score
 
 
-def compute_fruits(true: Word, pred: Word) -> tuple[Fruit, Fruit]:
+def compute_hints(true: Word, pred: Word) -> tuple[Hint, Hint]:
     if not (len(true) == len(pred) == 2):
         raise ValueError("Inputs' length must be 2.")
     true_1st, true_2nd = true
     pred_1st, pred_2nd = pred
-    jamos_true_1st = decompose_hangul(true_1st)
-    jamos_true_2nd = decompose_hangul(true_2nd)
-    jamos_pred_1st = decompose_hangul(pred_1st)
-    jamos_pred_2nd = decompose_hangul(pred_2nd)
-    first_fruit = infer_fruit(jamos_pred_1st, jamos_true_1st, jamos_true_2nd)
-    second_fruit = infer_fruit(jamos_pred_2nd, jamos_true_2nd, jamos_true_1st)
-    return first_fruit, second_fruit
-
-
-def infer_fruit(
-    jamos_pred: tuple[Jamo, ...], jamos_true: tuple[Jamo, ...], jamos_true_the_other: tuple[Jamo, ...]
-) -> Fruit:
-    hit_direct_count = len(set(jamos_pred) & set(jamos_true))
-    hit_indirect_count = len(set(jamos_pred) & set(jamos_true_the_other))
-    if jamos_pred == jamos_true:
-        return "당근"
-    if hit_direct_count >= 2:
-        if jamos_pred[0] == jamos_true[0]:
-            return "버섯"
-        return "마늘"
-    if hit_direct_count == 1:
-        return "가지"
-    if hit_indirect_count > 0:
-        return "바나나"
-    return "사과"
+    for cls in Hint.__subclasses__():
+        hint_1st = cls(syllable=pred_1st)
+        if hint_1st.can_be_answer(syllable_direct=true_1st, syllable_indirect=true_2nd):
+            first_hint = hint_1st
+    for cls in Hint.__subclasses__():
+        hint_2nd = cls(syllable=pred_2nd)
+        if hint_2nd.can_be_answer(syllable_direct=true_2nd, syllable_indirect=true_1st):
+            second_hint = hint_2nd
+    return first_hint, second_hint

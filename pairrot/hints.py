@@ -100,13 +100,12 @@ class Eggplant(Hint):
 
 
 class Garlic(Hint):
-    """
-    Hint indicating the syllable has multiple common characters, a different initial character,
+    """Hint indicating the syllable has multiple common characters, a different initial character,
     and is not exactly the reference syllable.
 
     Example:
-        >>> garlic_hint = Garlic(syllable="안")
-        >>> garlic_hint.can_be_answer(syllable_direct="나")
+        >>> garlic = Garlic(syllable="안")
+        >>> garlic.can_be_answer(syllable_direct="나")
         True
     """
 
@@ -130,12 +129,12 @@ class Garlic(Hint):
 
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:
         """Checks if the direct syllable is identical to the reference syllable."""
-        return syllable_direct == self.syllable
+        return self.syllable == syllable_direct
 
     def has_equal_chosung(self, syllable_direct: Syllable) -> bool:
         """Checks if the initial character (chosung) is the same as the reference syllable."""
         jamos_direct = decompose_hangul(syllable_direct)
-        return jamos_direct[0] == self.jamo_tuple_standard[0]
+        return self.jamo_tuple_standard[0] == jamos_direct[0]
 
 
 class Mushroom(Hint):
@@ -143,8 +142,8 @@ class Mushroom(Hint):
     and is not exactly the reference syllable.
 
     Example:
-        >>> mushroom_hint = Mushroom(syllable="안")
-        >>> mushroom_hint.can_be_answer(syllable_direct="아")
+        >>> mushroom = Mushroom(syllable="안")
+        >>> mushroom.can_be_answer(syllable_direct="아")
         True
     """
 
