@@ -9,6 +9,17 @@ from pairrot.hints import Hint
 
 
 class Solver:
+    """select 메서드를 통해 정답 후보군을 가장 적게 만드는 단어 하나를 선택
+    feedback 메서드를 통해 단어 힌트를 전달하여 정답 후보군 갱신
+
+    Examples:
+        answer = "정답"
+        solver = Solver()
+        best_word, _ = solver.select()
+        first_hint, second_hint = compute_hints(answer, best_word)
+        solver.feedback(first_hint, second_hint)
+        ...
+    """
     def __init__(self):
         self.word2label = _VOCAB
         self.maybe_possible_words_at_least = get_possible_words(_VOCAB) + get_maybe_possible_words(_VOCAB)
@@ -29,16 +40,6 @@ class Solver:
             if current_score < best_score:
                 best_word = word
                 best_score = current_score
-        possible_words = []
-        for word in self.candidates:
-            syllable_1st, syllable_2nd = word
-            first_hint, second_hint = compute_hints(word, best_word)
-            if (
-                first_hint.can_be_answer(syllable_direct=syllable_1st, syllable_indirect=syllable_2nd)
-                and second_hint.can_be_answer(syllable_direct=syllable_2nd, syllable_indirect=syllable_1st)
-            ):
-                possible_words.append(word)
-        self.candidates = possible_words
         return best_word, best_score
 
     def feedback(self, first_hint: Hint, second_hint: Hint):
