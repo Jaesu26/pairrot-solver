@@ -1,11 +1,22 @@
 from collections import defaultdict
+from typing import Literal, Type, TypeAlias
 
 import numpy as np
 
-from pairrot.types import Word
+from pairrot.hints import Apple, Banana, Carrot, Eggplant, Garlic, Hint, Mushroom
+from pairrot.types import Syllable, Word
 from pairrot.utils import get_maybe_possible_words, get_possible_words
 from pairrot.vocab import _VOCAB
-from pairrot.hints import Hint
+
+HINT_NAME: TypeAlias = Literal["사과", "바나나", "가지", "마늘", "버섯", "당근"]
+HINT_BY_NAME: dict[HINT_NAME, Type[Hint]] = {
+    "사과": Apple,
+    "바나나": Banana,
+    "가지": Eggplant,
+    "마늘": Garlic,
+    "버섯": Mushroom,
+    "당근": Carrot,
+}
 
 
 class Solver:
@@ -20,15 +31,14 @@ class Solver:
         solver.feedback(first_hint, second_hint)
         ...
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.word2label = _VOCAB
-        self.maybe_possible_words_at_least = get_possible_words(_VOCAB) + get_maybe_possible_words(_VOCAB)
-        self.candidates = self.maybe_possible_words_at_least.copy()
+        self.candidates = get_possible_words(_VOCAB) + get_maybe_possible_words(_VOCAB)
 
     def select(self) -> tuple[Word, float]:
         """제시할 단어를 선택한다"""
         word2scores: dict[Word, list[int]] = defaultdict(list)
-        for current_word in self.maybe_possible_words_at_least:
+        for current_word in self.candidates:
             word2score = compute_score(self.candidates, current_word)
             for word, score in word2score.items():
                 word2scores[word].append(score)
@@ -42,10 +52,16 @@ class Solver:
                 best_score = current_score
         return best_word, best_score
 
-    def feedback(self, first_hint: Hint, second_hint: Hint):
+    def feedback(self, pred: Word, first_hint_name: HINT_NAME, second_hint_name: HINT_NAME) -> None:
+        syllable_1st, syllable_2nd = pred[0], pred[1]
+        first_hint = HINT_BY_NAME[first_hint_name](syllable_1st)
+        second_hint = HINT_BY_NAME[second_hint_name](syllable_2nd)
+        self._feedback(first_hint, second_hint)
+
+    def _feedback(self, first_hint: Hint, second_hint: Hint) -> None:
         possible_words = []
         for word in self.candidates:
-            syllable_1st, syllable_2nd = word
+            syllable_1st, syllable_2nd = word[0], word[1]
             if (
                 first_hint.can_be_answer(syllable_direct=syllable_1st, syllable_indirect=syllable_2nd)
                 and second_hint.can_be_answer(syllable_direct=syllable_2nd, syllable_indirect=syllable_1st)
@@ -54,15 +70,13 @@ class Solver:
         self.candidates = possible_words
 
 
-def compute_score(possible_words: list[Word], maybe_answer: Word):
-    # if maybe_answer not in possible_words:
-    #     raise ValueError("maybe_answer 단어는 possible 단어 집합에 속해야 합니다.")
+def compute_score(possible_words: list[Word], maybe_answer: Word) -> dict[Word, int]:
     word2score: dict[Word, int] = {}
     for candidate in possible_words:
-        first_hint, second_hint = compute_hints(maybe_answer, candidate)
+        first_hint, second_hint = compute_hints(true=maybe_answer, pred=candidate)
         possible_words_copy = []
         for word in possible_words:
-            syllable_1st, syllable_2nd = word
+            syllable_1st, syllable_2nd = word[0], word[1]
             if (
                 first_hint.can_be_answer(syllable_direct=syllable_1st, syllable_indirect=syllable_2nd)
                 and second_hint.can_be_answer(syllable_direct=syllable_2nd, syllable_indirect=syllable_1st)
@@ -76,17 +90,18 @@ def compute_score(possible_words: list[Word], maybe_answer: Word):
     return word2score
 
 
-def compute_hints(true: Word, pred: Word) -> tuple[Hint, Hint]:
-    if not (len(true) == len(pred) == 2):
-        raise ValueError("Inputs' length must be 2.")
-    true_1st, true_2nd = true
-    pred_1st, pred_2nd = pred
-    for cls in Hint.__subclasses__():
-        hint_1st = cls(syllable=pred_1st)
-        if hint_1st.can_be_answer(syllable_direct=true_1st, syllable_indirect=true_2nd):
-            first_hint = hint_1st
-    for cls in Hint.__subclasses__():
-        hint_2nd = cls(syllable=pred_2nd)
-        if hint_2nd.can_be_answer(syllable_direct=true_2nd, syllable_indirect=true_1st):
-            second_hint = hint_2nd
+def compute_hints(*, true: Word, pred: Word) -> tuple[Hint, Hint]:
+    true_1st, true_2nd = true[0], true[1]
+    pred_1st, pred_2nd = pred[0], pred[1]
+    first_hint = _compute_hint(true_direct=true_1st, true_indirect=true_2nd, pred=pred_1st)
+    second_hint = _compute_hint(true_direct=true_2nd, true_indirect=true_1st, pred=pred_2nd)
     return first_hint, second_hint
+
+
+def _compute_hint(*, true_direct: Syllable, true_indirect: Syllable, pred: Syllable) -> Hint:
+    for cls in Hint.__subclasses__():
+        hint = cls(syllable=pred)
+        if not hint.can_be_answer(syllable_direct=true_direct, syllable_indirect=true_indirect):
+            continue
+        return hint
+    raise ValueError("힌트를 특정할 수 없습니다.")

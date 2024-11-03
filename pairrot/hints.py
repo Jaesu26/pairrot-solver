@@ -45,7 +45,9 @@ class Apple(Hint):
     def __init__(self, syllable: Syllable) -> None:
         self.jamo_set_standard = set(decompose_hangul(syllable))
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None) -> bool:
+        if syllable_indirect is None:
+            raise TypeError("syllable_indirect must be a syllable.")
         return not self.has_common_jamo(syllable_direct) and not self.has_common_jamo(syllable_indirect)
 
     def has_common_jamo(self, syllable: Syllable) -> bool:
@@ -67,7 +69,9 @@ class Banana(Hint):
     def __init__(self, syllable: Syllable) -> None:
         self.jamo_set_standard = set(decompose_hangul(syllable))
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None) -> bool:
+        if syllable_indirect is None:
+            raise TypeError("syllable_indirect must be a syllable.")
         return not self.has_common_jamo(syllable_direct) and self.has_common_jamo(syllable_indirect)
 
     def has_common_jamo(self, syllable: Syllable) -> bool:
@@ -89,7 +93,7 @@ class Eggplant(Hint):
     def __init__(self, syllable: Syllable) -> None:
         self.jamo_set_standard = set(decompose_hangul(syllable))
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: None = None) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
         return self.has_single_common_jamo(syllable_direct)
 
     def has_single_common_jamo(self, syllable_direct: Syllable) -> bool:
@@ -114,7 +118,7 @@ class Garlic(Hint):
         self.jamo_tuple_standard = decompose_hangul(syllable)
         self.jamo_set_standard = set(self.jamo_tuple_standard)
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: None = None) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
         return (
             self.has_multiple_common_jamos(syllable_direct)
             and not self.is_equal_syllable(syllable_direct)
@@ -152,7 +156,7 @@ class Mushroom(Hint):
         self.jamo_tuple_standard = decompose_hangul(syllable)
         self.jamo_set_standard = set(self.jamo_tuple_standard)
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: None = None) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
         return (
             self.has_multiple_common_jamos(syllable_direct)
             and not self.is_equal_syllable(syllable_direct)
@@ -179,15 +183,15 @@ class Carrot(Hint):
     """Hint indicating the syllable must exactly match the reference syllable.
 
     Example:
-        >>> carrot_hint = Carrot(syllable="안")
-        >>> carrot_hint.can_be_answer(syllable_direct="안")
+        >>> carrot = Carrot(syllable="안")
+        >>> carrot.can_be_answer(syllable_direct="안")
         True
     """
 
     def __init__(self, syllable: Syllable) -> None:
         self.syllable = syllable
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: None = None) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
         return self.is_equal_syllable(syllable_direct)
 
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:

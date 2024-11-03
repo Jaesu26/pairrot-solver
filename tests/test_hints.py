@@ -1,4 +1,4 @@
-from pairrot.hints import Apple, Banana, Eggplant, Garlic, Mushroom, Carrot
+from pairrot.hints import Apple, Banana, Carrot, Eggplant, Garlic, Mushroom
 
 
 def test_apple():

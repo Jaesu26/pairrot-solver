@@ -2,6 +2,8 @@ from pairrot.types import Jamo
 
 POSSIBLE = "possible"
 MAYBE_POSSIBLE = "maybe_possible"
+IMPOSSIBLE = "impossible"
+NUM_SYLLABLES = 11172
 BASE_CODE = 0xAC00
 CHOSUNG_BASE = 588
 JUNGSUNG_BASE = 28
