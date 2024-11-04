@@ -16,11 +16,14 @@ def intersection(x: set[Any], y: set[Any]) -> set[Any]:
 class Hint(ABC):
     """Abstract base class for word puzzle hints."""
 
+    def __init__(self, syllable: Syllable) -> None:
+        self.syllable = syllable
+
     @abstractmethod
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None) -> bool:
         """Determines if the syllable meets the conditions of the hint."""
 
-    def can_be_answer(self, *, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
+    def can_be_answer(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
         """Checks if a syllable can be an answer based on the hint.
 
         Args:
@@ -43,6 +46,7 @@ class Apple(Hint):
     """
 
     def __init__(self, syllable: Syllable) -> None:
+        super().__init__(syllable)
         self.jamo_set_standard = set(decompose_hangul(syllable))
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None) -> bool:
@@ -67,6 +71,7 @@ class Banana(Hint):
     """
 
     def __init__(self, syllable: Syllable) -> None:
+        super().__init__(syllable)
         self.jamo_set_standard = set(decompose_hangul(syllable))
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None) -> bool:
@@ -91,6 +96,7 @@ class Eggplant(Hint):
     """
 
     def __init__(self, syllable: Syllable) -> None:
+        super().__init__(syllable)
         self.jamo_set_standard = set(decompose_hangul(syllable))
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
@@ -114,7 +120,7 @@ class Garlic(Hint):
     """
 
     def __init__(self, syllable: Syllable) -> None:
-        self.syllable = syllable
+        super().__init__(syllable)
         self.jamo_tuple_standard = decompose_hangul(syllable)
         self.jamo_set_standard = set(self.jamo_tuple_standard)
 
@@ -152,7 +158,7 @@ class Mushroom(Hint):
     """
 
     def __init__(self, syllable: Syllable) -> None:
-        self.syllable = syllable
+        super().__init__(syllable)
         self.jamo_tuple_standard = decompose_hangul(syllable)
         self.jamo_set_standard = set(self.jamo_tuple_standard)
 
@@ -187,9 +193,6 @@ class Carrot(Hint):
         >>> carrot.can_be_answer(syllable_direct="안")
         True
     """
-
-    def __init__(self, syllable: Syllable) -> None:
-        self.syllable = syllable
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
         return self.is_equal_syllable(syllable_direct)
