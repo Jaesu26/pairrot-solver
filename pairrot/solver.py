@@ -2,9 +2,11 @@ from collections import defaultdict
 from typing import Literal, Type, TypeAlias
 
 import numpy as np
+from tqdm.auto import tqdm
 
+from pairrot.constants import INDEX_BY_POSITION
 from pairrot.hints import Apple, Banana, Carrot, Eggplant, Garlic, Hint, Mushroom
-from pairrot.types import Label, Syllable, Word
+from pairrot.types import Label, Position, Word
 from pairrot.utils import get_maybe_possible_words, get_possible_words, is_hangul
 from pairrot.vocab import _VOCAB
 
@@ -34,11 +36,12 @@ class Solver:
         ...
     """
 
-    def __init__(self, word2label: dict[Word, Label] | None = None) -> None:
+    def __init__(self, word2label: dict[Word, Label] | None = None, enable_progress_bar: bool = True) -> None:
         self.word2label = word2label if word2label is not None else _VOCAB.copy()
         self.candidates = get_possible_words(self.word2label) + get_maybe_possible_words(self.word2label)
         self.word2scores: defaultdict[Word, list[int]] = defaultdict(list)
         self.word2mean_score: dict[Word, float] = {}
+        self.enable_progress_bar = enable_progress_bar
 
     def select(self) -> tuple[Word, float]:
         """Select best word."""
@@ -52,7 +55,8 @@ class Solver:
         self.word2mean_score.clear()
 
     def _update_scores(self) -> None:
-        for true_assumed in self.candidates:
+        candidates = tqdm(self.candidates) if self.enable_progress_bar else self.candidates
+        for true_assumed in candidates:
             for pred in self.candidates:
                 self._update_score(true_assumed, pred)
 
@@ -65,11 +69,7 @@ class Solver:
         return len(self._filter_candidates(first_hint, second_hint))
 
     def _filter_candidates(self, first_hint: Hint, second_hint: Hint) -> list[Word]:
-        return [
-            word
-            for word in self.candidates
-            if first_hint.can_be_answer(word[0], word[1]) and second_hint.can_be_answer(word[1], word[0])
-        ]
+        return [word for word in self.candidates if first_hint.can_be_answer(word) and second_hint.can_be_answer(word)]
 
     def _reduce_scores_by_word(self, reduction: str = "mean") -> dict[Word, float]:
         if reduction != "mean":
@@ -88,8 +88,8 @@ class Solver:
             raise ValueError("pred's length must be 2.")
         if not (is_hangul(pred[0]) and is_hangul(pred[1])):
             raise ValueError("pred must be a korean.")
-        first_hint = HINT_BY_NAME[first_hint_name](pred[0])
-        second_hint = HINT_BY_NAME[second_hint_name](pred[1])
+        first_hint = HINT_BY_NAME[first_hint_name](pred[0], position="first")
+        second_hint = HINT_BY_NAME[second_hint_name](pred[1], position="second")
         self.candidates = self._filter_candidates(first_hint, second_hint)
 
     def reset(self) -> None:
@@ -98,15 +98,17 @@ class Solver:
 
 
 def compute_hint_pair(*, true: Word, pred: Word) -> tuple[Hint, Hint]:
-    first_hint = _compute_hint(true_direct=true[0], true_indirect=true[1], pred=pred[0])
-    second_hint = _compute_hint(true_direct=true[1], true_indirect=true[0], pred=pred[1])
+    first_hint = _compute_hint(true=true, pred=pred, position="first")
+    second_hint = _compute_hint(true=true, pred=pred, position="second")
     return first_hint, second_hint
 
 
-def _compute_hint(*, true_direct: Syllable, true_indirect: Syllable, pred: Syllable) -> Hint:
+def _compute_hint(*, true: Word, pred: Word, position: Position) -> Hint:
+    index = INDEX_BY_POSITION[position]
+    syllable_pred = pred[index]
     for cls in Hint.__subclasses__():
-        hint = cls(syllable=pred)
-        if not hint.can_be_answer(syllable_direct=true_direct, syllable_indirect=true_indirect):
+        hint = cls(syllable_pred, position=position)
+        if not hint.can_be_answer(true):
             continue
         return hint
     raise RuntimeError("The hint could not be specified.")

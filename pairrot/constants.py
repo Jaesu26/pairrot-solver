@@ -1,5 +1,6 @@
-from pairrot.types import Jamo
+from pairrot.types import Jamo, Position
 
+INDEX_BY_POSITION: dict[Position, int] = {"first": 0, "second": 1}
 POSSIBLE = "possible"
 MAYBE_POSSIBLE = "maybe_possible"
 IMPOSSIBLE = "impossible"

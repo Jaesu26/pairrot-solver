@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pairrot.types import Syllable
+from pairrot.constants import INDEX_BY_POSITION
+from pairrot.types import Position, Syllable, Word
 from pairrot.utils import decompose_hangul
 
 
@@ -16,23 +17,27 @@ def intersection(x: set[Any], y: set[Any]) -> set[Any]:
 class Hint(ABC):
     """Abstract base class for word puzzle hints."""
 
-    def __init__(self, syllable: Syllable) -> None:
-        self.syllable = syllable
+    def __init__(self, position: Position) -> None:
+        if position not in {"first", "second"}:
+            raise ValueError(f"position must be either first or second. Got: {position}")
+        self.index_direct = INDEX_BY_POSITION[position]
+        self.index_indirect = 1 - self.index_direct
 
     @abstractmethod
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         """Determines if the syllable meets the conditions of the hint."""
 
-    def can_be_answer(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
+    def can_be_answer(self, word: Word) -> bool:
         """Checks if a syllable can be an answer based on the hint.
 
         Args:
-            syllable_direct: The syllable directly input by the user.
-            syllable_indirect: An optional indirect syllable input.
+            word: The input word
 
         Returns:
             bool: True if the syllable can be an answer; False otherwise.
         """
+        syllable_direct = word[self.index_direct]
+        syllable_indirect = word[self.index_indirect]
         return self(syllable_direct, syllable_indirect)
 
 
@@ -40,16 +45,16 @@ class Apple(Hint):
     """Hint indicating the syllable has no characters in common with the reference syllable.
 
     Example:
-        >>> apple = Apple(syllable="안")
-        >>> apple.can_be_answer(syllable_direct="국", syllable_indirect="수")
+        >>> apple = Apple("안", position="first")
+        >>> apple.can_be_answer("국수")
         True
     """
 
-    def __init__(self, syllable: Syllable) -> None:
-        super().__init__(syllable)
+    def __init__(self, syllable: Syllable, *, position: Position) -> None:
+        super().__init__(position)
         self.jamo_set_standard = set(decompose_hangul(syllable))
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         if syllable_indirect is None:
             raise TypeError("syllable_indirect must be a syllable.")
         return not self.has_common_jamo(syllable_direct) and not self.has_common_jamo(syllable_indirect)
@@ -65,18 +70,16 @@ class Banana(Hint):
     """Hint indicating the syllable has common characters with the indirect syllable only.
 
     Example:
-        >>> banana = Banana(syllable="안")
-        >>> banana.can_be_answer(syllable_direct="소", syllable_indirect="바")
+        >>> banana = Banana("안", position="first")
+        >>> banana.can_be_answer("소바")
         True
     """
 
-    def __init__(self, syllable: Syllable) -> None:
-        super().__init__(syllable)
+    def __init__(self, syllable: Syllable, *, position: Position) -> None:
+        super().__init__(position)
         self.jamo_set_standard = set(decompose_hangul(syllable))
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None) -> bool:
-        if syllable_indirect is None:
-            raise TypeError("syllable_indirect must be a syllable.")
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         return not self.has_common_jamo(syllable_direct) and self.has_common_jamo(syllable_indirect)
 
     def has_common_jamo(self, syllable: Syllable) -> bool:
@@ -90,16 +93,16 @@ class Eggplant(Hint):
     """Hint indicating the syllable has exactly one character in common with the reference syllable.
 
     Example:
-        >>> eggplant = Eggplant(syllable="안")
-        >>> eggplant.can_be_answer(syllable_direct="바")
+        >>> eggplant = Eggplant("안", position="first")
+        >>> eggplant.can_be_answer("바지")
         True
     """
 
-    def __init__(self, syllable: Syllable) -> None:
-        super().__init__(syllable)
+    def __init__(self, syllable: Syllable, *, position: Position) -> None:
+        super().__init__(position)
         self.jamo_set_standard = set(decompose_hangul(syllable))
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         return self.has_single_common_jamo(syllable_direct)
 
     def has_single_common_jamo(self, syllable_direct: Syllable) -> bool:
@@ -114,17 +117,18 @@ class Garlic(Hint):
     and is not exactly the reference syllable.
 
     Example:
-        >>> garlic = Garlic(syllable="안")
-        >>> garlic.can_be_answer(syllable_direct="나")
+        >>> garlic = Garlic("안", position="first")
+        >>> garlic.can_be_answer("나비")
         True
     """
 
-    def __init__(self, syllable: Syllable) -> None:
-        super().__init__(syllable)
+    def __init__(self, syllable: Syllable, *, position: Position) -> None:
+        super().__init__(position)
+        self.syllable = syllable
         self.jamo_tuple_standard = decompose_hangul(syllable)
         self.jamo_set_standard = set(self.jamo_tuple_standard)
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         return (
             self.has_multiple_common_jamos(syllable_direct)
             and not self.is_equal_syllable(syllable_direct)
@@ -152,17 +156,18 @@ class Mushroom(Hint):
     and is not exactly the reference syllable.
 
     Example:
-        >>> mushroom = Mushroom(syllable="안")
-        >>> mushroom.can_be_answer(syllable_direct="아")
+        >>> mushroom = Mushroom("안", position="second")
+        >>> mushroom.can_be_answer(syllable_direct="치아")
         True
     """
 
-    def __init__(self, syllable: Syllable) -> None:
-        super().__init__(syllable)
+    def __init__(self, syllable: Syllable, *, position: Position) -> None:
+        super().__init__(position)
+        self.syllable = syllable
         self.jamo_tuple_standard = decompose_hangul(syllable)
         self.jamo_set_standard = set(self.jamo_tuple_standard)
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         return (
             self.has_multiple_common_jamos(syllable_direct)
             and not self.is_equal_syllable(syllable_direct)
@@ -189,12 +194,16 @@ class Carrot(Hint):
     """Hint indicating the syllable must exactly match the reference syllable.
 
     Example:
-        >>> carrot = Carrot(syllable="안")
-        >>> carrot.can_be_answer(syllable_direct="안")
+        >>> carrot = Carrot("안", position="first")
+        >>> carrot.can_be_answer("안녕")
         True
     """
 
-    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable | None = None) -> bool:
+    def __init__(self, syllable: Syllable, *, position: Position) -> None:
+        super().__init__(position)
+        self.syllable = syllable
+
+    def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         return self.is_equal_syllable(syllable_direct)
 
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:
