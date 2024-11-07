@@ -33,7 +33,7 @@ def decompose_hangul(syllable: Syllable) -> tuple[Jamo, ...]:
     return (
         extract_chosung(syllable),
         *_decompose_jungsung(extract_jungsung(syllable)),
-        *_decompose_jongsung(*extract_jongsung(syllable)),
+        *_decompose_jongsung(extract_jongsung(syllable)),
     )
 
 
