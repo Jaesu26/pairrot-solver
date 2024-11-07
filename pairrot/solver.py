@@ -69,7 +69,7 @@ class Solver:
         return len(self._filter_candidates(first_hint, second_hint))
 
     def _filter_candidates(self, first_hint: Hint, second_hint: Hint) -> list[Word]:
-        return [word for word in self.candidates if first_hint.can_be_answer(word) and second_hint.can_be_answer(word)]
+        return [word for word in self.candidates if first_hint.is_compatible(word) and second_hint.is_compatible(word)]
 
     def _reduce_scores_by_word(self, reduction: str = "mean") -> dict[Word, float]:
         if reduction != "mean":
@@ -108,7 +108,7 @@ def _compute_hint(*, true: Word, pred: Word, position: Position) -> Hint:
     syllable_pred = pred[index]
     for cls in Hint.__subclasses__():
         hint = cls(syllable_pred, position=position)
-        if not hint.can_be_answer(true):
+        if not hint.is_compatible(true):
             continue
         return hint
     raise RuntimeError("The hint could not be specified.")

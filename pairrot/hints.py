@@ -1,16 +1,18 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TypeVar
 
 from pairrot.constants import INDEX_BY_POSITION
 from pairrot.types import Position, Syllable, Word
 from pairrot.utils import decompose_hangul
 
+_T = TypeVar("_T")
 
-def union(x: set[Any], y: set[Any]) -> set[Any]:
+
+def union(x: set[_T], y: set[_T]) -> set[_T]:
     return x | y
 
 
-def intersection(x: set[Any], y: set[Any]) -> set[Any]:
+def intersection(x: set[_T], y: set[_T]) -> set[_T]:
     return x & y
 
 
@@ -25,16 +27,16 @@ class Hint(ABC):
 
     @abstractmethod
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
-        """Determines if the syllable meets the conditions of the hint."""
+        """Determines if the given syllables satisfy the hint conditions."""
 
-    def can_be_answer(self, word: Word) -> bool:
-        """Checks if a syllable can be an answer based on the hint.
+    def is_compatible(self, word: Word) -> bool:
+        """Checks if a word satisfies the hint.
 
         Args:
-            word: The input word
+            word: The word to check compatibility with the hint.
 
         Returns:
-            bool: True if the syllable can be an answer; False otherwise.
+            bool: True if the word satisfies the hint conditions; False otherwise.
         """
         syllable_direct = word[self.index_direct]
         syllable_indirect = word[self.index_indirect]
@@ -42,91 +44,89 @@ class Hint(ABC):
 
 
 class Apple(Hint):
-    """Hint indicating the syllable has no characters in common with the reference syllable.
+    """Hint specifying that neither syllable should share any characters with the reference.
 
     Example:
         >>> apple = Apple("안", position="first")
-        >>> apple.can_be_answer("국수")
+        >>> apple.is_compatible("국수")
         True
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
         super().__init__(position)
-        self.jamo_set_standard = set(decompose_hangul(syllable))
+        self.jamo_set_criterion = set(decompose_hangul(syllable))
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
-        if syllable_indirect is None:
-            raise TypeError("syllable_indirect must be a syllable.")
         return not self.has_common_jamo(syllable_direct) and not self.has_common_jamo(syllable_indirect)
 
     def has_common_jamo(self, syllable: Syllable) -> bool:
-        """Checks if there are no common characters between standard and syllable."""
+        """Checks if there are any common characters between the reference and given syllable."""
         jamos = set(decompose_hangul(syllable))
-        hit_count = len(intersection(self.jamo_set_standard, jamos))
+        hit_count = len(intersection(self.jamo_set_criterion, jamos))
         return hit_count > 0
 
 
 class Banana(Hint):
-    """Hint indicating the syllable has common characters with the indirect syllable only.
+    """Hint specifying that only the indirect syllable shares characters with the reference.
 
     Example:
         >>> banana = Banana("안", position="first")
-        >>> banana.can_be_answer("소바")
+        >>> banana.is_compatible("소바")
         True
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
         super().__init__(position)
-        self.jamo_set_standard = set(decompose_hangul(syllable))
+        self.jamo_set_criterion = set(decompose_hangul(syllable))
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         return not self.has_common_jamo(syllable_direct) and self.has_common_jamo(syllable_indirect)
 
     def has_common_jamo(self, syllable: Syllable) -> bool:
-        """Checks if there are no common characters between standard and syllable."""
+        """Checks if there are common characters between the reference and the given syllable."""
         jamos = set(decompose_hangul(syllable))
-        hit_count = len(intersection(self.jamo_set_standard, jamos))
+        hit_count = len(intersection(self.jamo_set_criterion, jamos))
         return hit_count > 0
 
 
 class Eggplant(Hint):
-    """Hint indicating the syllable has exactly one character in common with the reference syllable.
+    """Hint specifying that the direct syllable should share exactly one character with the reference.
 
     Example:
         >>> eggplant = Eggplant("안", position="first")
-        >>> eggplant.can_be_answer("바지")
+        >>> eggplant.is_compatible("바지")
         True
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
         super().__init__(position)
-        self.jamo_set_standard = set(decompose_hangul(syllable))
+        self.jamo_set_criterion = set(decompose_hangul(syllable))
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         return self.has_single_common_jamo(syllable_direct)
 
     def has_single_common_jamo(self, syllable_direct: Syllable) -> bool:
-        """Checks if there is exactly one common character between standard and direct syllable."""
+        """Checks if there is exactly one common character between the reference and direct syllable."""
         jamos_direct = set(decompose_hangul(syllable_direct))
-        hit_direct_count = len(intersection(self.jamo_set_standard, jamos_direct))
+        hit_direct_count = len(intersection(self.jamo_set_criterion, jamos_direct))
         return hit_direct_count == 1
 
 
 class Garlic(Hint):
-    """Hint indicating the syllable has multiple common characters, a different initial character,
-    and is not exactly the reference syllable.
+    """Hint specifying that the direct syllable should have multiple common characters,
+    a different initial character, and not be identical to the reference.
 
     Example:
         >>> garlic = Garlic("안", position="first")
-        >>> garlic.can_be_answer("나비")
+        >>> garlic.is_compatible("나비")
         True
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
         super().__init__(position)
         self.syllable = syllable
-        self.jamo_tuple_standard = decompose_hangul(syllable)
-        self.jamo_set_standard = set(self.jamo_tuple_standard)
+        self.jamo_tuple_criterion = decompose_hangul(syllable)
+        self.jamo_set_criterion = set(self.jamo_tuple_criterion)
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         return (
@@ -136,36 +136,36 @@ class Garlic(Hint):
         )
 
     def has_multiple_common_jamos(self, syllable_direct: Syllable) -> bool:
-        """Checks if there are multiple common characters between standard and direct syllable."""
+        """Checks if there are multiple common characters between the reference and direct syllable."""
         jamos_direct = set(decompose_hangul(syllable_direct))
-        hit_direct_count = len(intersection(self.jamo_set_standard, jamos_direct))
+        hit_direct_count = len(intersection(self.jamo_set_criterion, jamos_direct))
         return hit_direct_count >= 2
 
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:
-        """Checks if the direct syllable is identical to the reference syllable."""
+        """Checks if the direct syllable is identical to the reference."""
         return self.syllable == syllable_direct
 
     def has_equal_chosung(self, syllable_direct: Syllable) -> bool:
-        """Checks if the initial character (chosung) is the same as the reference syllable."""
+        """Checks if the initial character (chosung) matches the reference."""
         jamos_direct = decompose_hangul(syllable_direct)
-        return self.jamo_tuple_standard[0] == jamos_direct[0]
+        return self.jamo_tuple_criterion[0] == jamos_direct[0]
 
 
 class Mushroom(Hint):
-    """Hint indicating the syllable has multiple common characters, the same initial character,
-    and is not exactly the reference syllable.
+    """Hint specifying that the direct syllable should have multiple common characters,
+    the same initial character, and not be identical to the reference.
 
     Example:
         >>> mushroom = Mushroom("안", position="second")
-        >>> mushroom.can_be_answer(syllable_direct="치아")
+        >>> mushroom.is_compatible("치아")
         True
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
         super().__init__(position)
         self.syllable = syllable
-        self.jamo_tuple_standard = decompose_hangul(syllable)
-        self.jamo_set_standard = set(self.jamo_tuple_standard)
+        self.jamo_tuple_criterion = decompose_hangul(syllable)
+        self.jamo_set_criterion = set(self.jamo_tuple_criterion)
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
         return (
@@ -175,27 +175,27 @@ class Mushroom(Hint):
         )
 
     def has_multiple_common_jamos(self, syllable_direct: Syllable) -> bool:
-        """Checks if there are multiple common characters between standard and direct syllable."""
+        """Checks if there are multiple common characters between the reference and direct syllable."""
         jamos_direct = set(decompose_hangul(syllable_direct))
-        hit_direct_count = len(intersection(self.jamo_set_standard, jamos_direct))
+        hit_direct_count = len(intersection(self.jamo_set_criterion, jamos_direct))
         return hit_direct_count >= 2
 
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:
-        """Checks if the direct syllable is identical to the reference syllable."""
-        return syllable_direct == self.syllable
+        """Checks if the direct syllable is identical to the reference."""
+        return self.syllable == syllable_direct
 
     def has_equal_chosung(self, syllable_direct: Syllable) -> bool:
-        """Checks if the initial character (chosung) is the same as the reference syllable."""
+        """Checks if the initial character (chosung) matches the reference."""
         jamos_direct = decompose_hangul(syllable_direct)
-        return jamos_direct[0] == self.jamo_tuple_standard[0]
+        return self.jamo_tuple_criterion[0] == jamos_direct[0]
 
 
 class Carrot(Hint):
-    """Hint indicating the syllable must exactly match the reference syllable.
+    """Hint specifying that the direct syllable must exactly match the reference.
 
     Example:
         >>> carrot = Carrot("안", position="first")
-        >>> carrot.can_be_answer("안녕")
+        >>> carrot.is_compatible("안녕")
         True
     """
 
@@ -207,5 +207,5 @@ class Carrot(Hint):
         return self.is_equal_syllable(syllable_direct)
 
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:
-        """Checks if the direct syllable is identical to the reference syllable."""
-        return syllable_direct == self.syllable
+        """Checks if the direct syllable is identical to the reference."""
+        return self.syllable == syllable_direct
