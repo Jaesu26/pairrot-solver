@@ -29,7 +29,7 @@ def decompose_hangul(syllable: Syllable) -> tuple[Jamo, ...]:
     if len(syllable) != 1:
         raise ValueError(f"Input's length must be 1. Got: {syllable}")
     if not is_hangul(syllable):
-        raise ValueError(f"Input must be a hangul. Got: {syllable}")
+        raise ValueError(f"Input must be korean. Got: {syllable}")
     return (
         extract_chosung(syllable),
         *_decompose_jungsung(extract_jungsung(syllable)),
