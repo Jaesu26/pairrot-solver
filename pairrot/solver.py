@@ -22,21 +22,20 @@ HINT_BY_NAME: dict[HINT_NAME, Type[Hint]] = {
 
 
 class Solver:
-    """suggest 메서드를 통해 정답 후보군을 가장 적게 만드는 단어 하나를 제안하고.
-    feedback 메서드를 통해 단어 힌트를 전달하여 정답 후보군을 갱신.
+    """Suggests a word to minimize possible candidates through the `suggest` method,
+    and updates the candidates based on feedback using the `feedback` method.
 
     Args:
-        word2label: A dictionary for solving the word puzzle.
-        enable_progress_bar: Enable progress bar.
-        threshold: Threshold for searching candidates.
-        seed: The seed number.
+        word2label: The dictionary mapping words to labels for solving the word puzzle.
+        enable_progress_bar: If True, displays a progress bar.
+        threshold: The candidate count threshold to switch from brute-force to random scoring.
+        seed: The random seed for consistent results with random scoring.
 
     Examples:
         answer = "정답"
         solver = Solver()
-        best_word, _ = solver.suggest()  # e.g.) best_word = "맑음"
+        best_word, best_score = solver.suggest()
         solver.feedback(best_word, "바나나", "바나나")
-        ...
     """
 
     def __init__(
@@ -56,22 +55,29 @@ class Solver:
         self.num_candidates = len(self.candidates)
 
     def suggest(self) -> tuple[Word, float]:
-        """Select best word."""
-        self._setup()
+        """Suggests the best word based on current candidate scores.
+
+        Returns:
+            A tuple containing the best word and its mean score.
+        """
+        self._clear()
         self._update_scores()
         self.word2mean_score = self._reduce_scores_by_word()
         return self._select()
 
-    def _setup(self) -> None:
+    def _clear(self) -> None:
         self.word2scores.clear()
         self.word2mean_score.clear()
 
     def _update_scores(self) -> None:
-        self.num_candidates = len(self.candidates)
         if self.use_bruteforce:
             self._update_scores_bruteforce()
         else:
             self._update_scores_random()
+
+    @property
+    def use_bruteforce(self) -> bool:
+        return self.num_candidates < self.threshold
 
     def _update_scores_bruteforce(self) -> None:
         candidates = tqdm(self.candidates) if self.enable_progress_bar else self.candidates
@@ -86,10 +92,6 @@ class Solver:
             index = next(index_iter)
             true_assumed = self.candidates[index]
             self._update_score(true_assumed, pred)
-
-    @property
-    def use_bruteforce(self):
-        return self.num_candidates < self.threshold
 
     def _update_score(self, true: Word, pred: Word) -> None:
         first_hint, second_hint = compute_hint_pair(true=true, pred=pred)
@@ -115,6 +117,13 @@ class Solver:
         return best_word, best_score
 
     def feedback(self, pred: Word, first_hint_name: HINT_NAME, second_hint_name: HINT_NAME) -> None:
+        """Filters candidates based on provided feedback hints.
+
+        Args:
+            pred: The predicted word used for feedback.
+            first_hint_name: The type of hint for the first syllable.
+            second_hint_name: The type of hint for the second syllable.
+        """
         if len(pred) != 2:
             raise ValueError("pred's length must be 2.")
         if not (is_hangul(pred[0]) and is_hangul(pred[1])):
@@ -122,10 +131,12 @@ class Solver:
         first_hint = HINT_BY_NAME[first_hint_name](pred[0], position="first")
         second_hint = HINT_BY_NAME[second_hint_name](pred[1], position="second")
         self.candidates = self._filter_candidates(first_hint, second_hint)
+        self.num_candidates = len(self.candidates)
 
     def reset(self) -> None:
+        """Resets the candidate list and clears scores for a fresh start."""
         self.candidates = get_possible_words(self.word2label) + get_maybe_possible_words(self.word2label)
-        self._setup()
+        self._clear()
 
 
 def compute_hint_pair(*, true: Word, pred: Word) -> tuple[Hint, Hint]:
