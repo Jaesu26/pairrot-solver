@@ -38,7 +38,7 @@ def decompose_hangul(syllable: Syllable) -> tuple[Jamo, ...]:
 
 
 def is_hangul(syllable: Syllable) -> bool:
-    return BASE_CODE <= ord(syllable) <= BASE_CODE + 11171
+    return BASE_CODE <= ord(syllable) < BASE_CODE + NUM_SYLLABLES
 
 
 @lru_cache(maxsize=NUM_SYLLABLES)
