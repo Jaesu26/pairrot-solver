@@ -1,13 +1,23 @@
 from collections import defaultdict
+from typing import Type
 
 import numpy as np
 from tqdm.auto import tqdm
 
-from pairrot.constants import HINT_BY_NAME, INDEX_BY_POSITION
-from pairrot.hints import Hint
+from pairrot.constants import INDEX_BY_POSITION
+from pairrot.hints import Apple, Banana, Carrot, Eggplant, Garlic, Hint, Mushroom
 from pairrot.types import HintName, Label, Position, Word
 from pairrot.utils import get_maybe_possible_words, get_possible_words, is_hangul
 from pairrot.vocab import _VOCAB
+
+HINT_BY_NAME: dict[HintName, Type[Hint]] = {
+    "사과": Apple,
+    "바나나": Banana,
+    "가지": Eggplant,
+    "마늘": Garlic,
+    "버섯": Mushroom,
+    "당근": Carrot,
+}
 
 
 class Solver:
