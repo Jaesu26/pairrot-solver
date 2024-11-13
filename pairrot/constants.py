@@ -1,9 +1,6 @@
 from pairrot.types import Jamo, Position
 
 INDEX_BY_POSITION: dict[Position, int] = {"first": 0, "second": 1}
-POSSIBLE = "possible"
-MAYBE_POSSIBLE = "maybe_possible"
-IMPOSSIBLE = "impossible"
 NUM_SYLLABLES = 11172
 BASE_CODE = 0xAC00
 CHOSUNG_BASE = 588
@@ -82,7 +79,6 @@ JONGSUNGS: list[Jamo] = [
     "ㅍ",
     "ㅎ",
 ]
-# 중성, 종성 복합 자음/모음 분해 사전
 JUNGSUNG_SPLIT_MAP: dict[Jamo, tuple[Jamo, Jamo]] = {
     "ㅘ": ("ㅗ", "ㅏ"),
     "ㅙ": ("ㅗ", "ㅐ"),

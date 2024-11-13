@@ -6,8 +6,8 @@ from tqdm.auto import tqdm
 
 from pairrot.constants import INDEX_BY_POSITION
 from pairrot.hints import Apple, Banana, Carrot, Eggplant, Garlic, Hint, Mushroom
-from pairrot.types import HintName, Label, Position, Word
-from pairrot.utils import get_maybe_possible_words, get_possible_words, is_hangul
+from pairrot.types import HintName, Position, Word
+from pairrot.utils import is_hangul
 from pairrot.vocab import _VOCAB
 
 HINT_BY_NAME: dict[HintName, Type[Hint]] = {
@@ -25,7 +25,7 @@ class Solver:
     and updates the candidates based on feedback using the `feedback` method.
 
     Args:
-        word2label: The dictionary mapping words to labels for solving the word puzzle.
+        vocab: words for solving the word puzzle.
         enable_progress_bar: If True, displays a progress bar.
         threshold: The candidate count threshold to switch from brute-force to random scoring.
         seed: The random seed for consistent results with random scoring.
@@ -34,18 +34,19 @@ class Solver:
         answer = "정답"
         solver = Solver()
         best_word, best_score = solver.suggest()
-        solver.feedback(best_word, "바나나", "바나나")
+        print(best_word)  # "보류"
+        solver.feedback(best_word, "사과", "사과")
     """
 
     def __init__(
         self,
-        word2label: dict[Word, Label] | None = None,
+        vocab: list[Word] | None = None,
         enable_progress_bar: bool = True,
         threshold: int = 1000,
         seed: int = 1234,
     ) -> None:
-        self.word2label = word2label if word2label is not None else _VOCAB.copy()
-        self.candidates = get_possible_words(self.word2label) + get_maybe_possible_words(self.word2label)
+        self.vocab = vocab if vocab is not None else _VOCAB.copy()
+        self.candidates = self.vocab.copy()
         self.word2scores: defaultdict[Word, list[int]] = defaultdict(list)
         self.word2mean_score: dict[Word, float] = {}
         self.enable_progress_bar = enable_progress_bar
@@ -134,7 +135,7 @@ class Solver:
 
     def reset(self) -> None:
         """Resets the candidate list and clears scores for a fresh start."""
-        self.candidates = get_possible_words(self.word2label) + get_maybe_possible_words(self.word2label)
+        self.candidates = self.vocab.copy()
         self._clear()
 
 

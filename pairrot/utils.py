@@ -9,19 +9,9 @@ from pairrot.constants import (
     JUNGSUNG_BASE,
     JUNGSUNG_SPLIT_MAP,
     JUNGSUNGS,
-    MAYBE_POSSIBLE,
     NUM_SYLLABLES,
-    POSSIBLE,
 )
-from pairrot.types import Jamo, Label, Syllable, Word
-
-
-def get_possible_words(word2label: dict[Word, Label]) -> list[Word]:
-    return [word for word, label in word2label.items() if label == POSSIBLE]
-
-
-def get_maybe_possible_words(word2label: dict[Word, Label]) -> list[Word]:
-    return [word for word, label in word2label.items() if label == MAYBE_POSSIBLE]
+from pairrot.types import Jamo, Syllable
 
 
 @lru_cache(maxsize=NUM_SYLLABLES)
