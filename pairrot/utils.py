@@ -1,3 +1,4 @@
+from collections import Counter
 from functools import lru_cache
 
 from pairrot.constants import (
@@ -11,7 +12,7 @@ from pairrot.constants import (
     JUNGSUNGS,
     NUM_SYLLABLES,
 )
-from pairrot.types import Jamo, Syllable
+from pairrot.types import Jamo, Syllable, Word
 
 
 @lru_cache(maxsize=NUM_SYLLABLES)
@@ -58,3 +59,19 @@ def extract_jongsung(syllable: Syllable) -> Jamo:
 
 def _decompose_jongsung(jongsung: Jamo) -> tuple[Jamo, ...]:
     return JONGSUNG_SPLIT_MAP.get(jongsung, (jongsung,)) if jongsung else ()
+
+
+def compute_jamo_frequency_by_word(words: list[Word]) -> dict[Jamo, int]:
+    jamos: list[Jamo] = []
+    for word in words:
+        s1, s2 = word[0], word[1]
+        jamos.extend(decompose_hangul(s1))
+        jamos.extend(decompose_hangul(s2))
+    return Counter(jamos)
+
+
+def compute_jamo_frequency_score(word: Word, jamo2frequency: dict[Jamo, int]) -> int:
+    s1, s2 = word[0], word[1]
+    jamos = list(set(decompose_hangul(s1)) | set(decompose_hangul(s2)))
+    score = sum([jamo2frequency[j] for j in jamos])
+    return score

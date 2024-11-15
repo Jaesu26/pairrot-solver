@@ -7,7 +7,7 @@ from tqdm.auto import tqdm
 from pairrot.constants import INDEX_BY_POSITION
 from pairrot.hints import Apple, Banana, Carrot, Eggplant, Garlic, Hint, Mushroom
 from pairrot.types import HintName, Position, Word
-from pairrot.utils import is_hangul
+from pairrot.utils import is_hangul, compute_jamo_frequency_by_word, compute_jamo_frequency_score
 from pairrot.vocab import _VOCAB
 
 HINT_BY_NAME: dict[HintName, Type[Hint]] = {
@@ -25,7 +25,6 @@ class Solver:
     and updates the candidates based on feedback using the `feedback` method.
 
     Args:
-        vocab: words for solving the word puzzle.
         enable_progress_bar: If True, displays a progress bar.
         threshold: The candidate count threshold to switch from brute-force to random scoring.
         seed: The random seed for consistent results with random scoring.
@@ -40,12 +39,11 @@ class Solver:
 
     def __init__(
         self,
-        vocab: list[Word] | None = None,
         enable_progress_bar: bool = True,
         threshold: int = 1000,
         seed: int = 1234,
     ) -> None:
-        self.vocab = vocab if vocab is not None else _VOCAB.copy()
+        self.vocab = _VOCAB.copy()
         self.candidates = self.vocab.copy()
         self.word2scores: defaultdict[Word, list[int]] = defaultdict(list)
         self.word2mean_score: dict[Word, float] = {}
@@ -61,6 +59,8 @@ class Solver:
             A tuple containing the best word and its mean score.
         """
         self._clear()
+        if not self.use_bruteforce:
+            return self._select_max_frequency_score_word()
         self._update_scores()
         self.word2mean_score = self._reduce_scores_by_word()
         return self._select()
@@ -69,15 +69,22 @@ class Solver:
         self.word2scores.clear()
         self.word2mean_score.clear()
 
+    @property
+    def use_bruteforce(self) -> bool:
+        return self.num_candidates < self.threshold
+
+    def _select_max_frequency_score_word(self):
+        jamo2frequency = compute_jamo_frequency_by_word(self.candidates)
+        word2jamo_score = {word: compute_jamo_frequency_score(word, jamo2frequency) for word in self.candidates}
+        best_word = max(word2jamo_score, key=word2jamo_score.get)
+        best_score = word2jamo_score[best_word]
+        return best_word, best_score
+
     def _update_scores(self) -> None:
         if self.use_bruteforce:
             self._update_scores_bruteforce()
         else:
             self._update_scores_random()
-
-    @property
-    def use_bruteforce(self) -> bool:
-        return self.num_candidates < self.threshold
 
     def _update_scores_bruteforce(self) -> None:
         candidates = tqdm(self.candidates) if self.enable_progress_bar else self.candidates
