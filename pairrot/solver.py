@@ -40,7 +40,7 @@ class Solver:
     def __init__(
         self,
         enable_progress_bar: bool = True,
-        threshold: int = 1000,
+        threshold: int = 500,
         seed: int = 1234,
     ) -> None:
         self.vocab = _VOCAB.copy()
@@ -60,7 +60,7 @@ class Solver:
         """
         self._clear()
         if not self.use_bruteforce:
-            return self._select_max_frequency_score_word()
+            return self._select_max_jamo_frequency_score_word()
         self._update_scores()
         self.word2mean_score = self._reduce_scores_by_word()
         return self._select()
@@ -73,7 +73,7 @@ class Solver:
     def use_bruteforce(self) -> bool:
         return self.num_candidates < self.threshold
 
-    def _select_max_frequency_score_word(self):
+    def _select_max_jamo_frequency_score_word(self):
         jamo2frequency = compute_jamo_frequency_by_word(self.candidates)
         word2jamo_score = {word: compute_jamo_frequency_score(word, jamo2frequency) for word in self.candidates}
         best_word = max(word2jamo_score, key=word2jamo_score.get)
@@ -83,22 +83,13 @@ class Solver:
     def _update_scores(self) -> None:
         if self.use_bruteforce:
             self._update_scores_bruteforce()
-        else:
-            self._update_scores_random()
+        raise RuntimeError("Critical error.")
 
     def _update_scores_bruteforce(self) -> None:
         candidates = tqdm(self.candidates) if self.enable_progress_bar else self.candidates
         for pred in candidates:
             for true_assumed in self.candidates:
                 self._update_score(true_assumed, pred)
-
-    def _update_scores_random(self) -> None:
-        candidates = tqdm(self.candidates) if self.enable_progress_bar else self.candidates
-        index_iter = iter(self.rng.integers(self.num_candidates, size=self.num_candidates).tolist())
-        for pred in candidates:
-            index = next(index_iter)
-            true_assumed = self.candidates[index]
-            self._update_score(true_assumed, pred)
 
     def _update_score(self, true: Word, pred: Word) -> None:
         first_hint, second_hint = compute_hint_pair(true=true, pred=pred)
