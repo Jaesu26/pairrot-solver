@@ -6,8 +6,8 @@ from tqdm.auto import tqdm
 
 from pairrot.constants import INDEX_BY_POSITION
 from pairrot.hints import Apple, Banana, Carrot, Eggplant, Garlic, Hint, Mushroom
-from pairrot.types import HintName, Position, Word
-from pairrot.utils import is_hangul, compute_jamo_frequency_by_word, compute_jamo_frequency_score
+from pairrot.types import HintName, Jamo, Position, Word
+from pairrot.utils import compute_jamo_frequency_by_word, compute_jamo_frequency_score, decompose_hangul, is_hangul
 from pairrot.vocab import _VOCAB
 
 HINT_BY_NAME: dict[HintName, Type[Hint]] = {
@@ -73,7 +73,7 @@ class Solver:
     def use_bruteforce(self) -> bool:
         return self.num_candidates < self.threshold
 
-    def _select_max_jamo_frequency_score_word(self):
+    def _select_max_jamo_frequency_score_word(self) -> tuple[Word, int]:
         jamo2frequency = compute_jamo_frequency_by_word(self.candidates)
         word2jamo_score = {word: compute_jamo_frequency_score(word, jamo2frequency) for word in self.candidates}
         best_word = max(word2jamo_score, key=word2jamo_score.get)
@@ -135,6 +135,11 @@ class Solver:
         """Resets the candidate list and clears scores for a fresh start."""
         self.candidates = self.vocab.copy()
         self._clear()
+
+    def feedback_pumpkin_hint(self, jamo: Jamo) -> None:
+        self.candidates = [
+            word for word in self.candidates if jamo in set(decompose_hangul(word[0])) | set(decompose_hangul(word[1]))
+        ]
 
 
 def compute_hint_pair(*, true: Word, pred: Word) -> tuple[Hint, Hint]:
