@@ -132,6 +132,7 @@ class Solver:
     def reset(self) -> None:
         """Resets the candidate list and clears scores for a fresh start."""
         self.candidates = self.vocab.copy()
+        self.num_candidates = len(self.candidates)
         self._clear()
 
     def feedback_pumpkin_hint(self, jamo: Jamo) -> None:
