@@ -81,9 +81,7 @@ class Solver:
         return best_word, best_score
 
     def _update_scores(self) -> None:
-        if self.use_bruteforce:
-            self._update_scores_bruteforce()
-        raise RuntimeError("Critical error.")
+        self._update_scores_bruteforce()
 
     def _update_scores_bruteforce(self) -> None:
         candidates = tqdm(self.candidates) if self.enable_progress_bar else self.candidates
