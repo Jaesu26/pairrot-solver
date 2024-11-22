@@ -40,7 +40,6 @@ class Solver:
         self,
         enable_progress_bar: bool = True,
         threshold: int = 500,
-        seed: int = 1234,
     ) -> None:
         self.vocab = _VOCAB.copy()
         self.candidates = self.vocab.copy()
