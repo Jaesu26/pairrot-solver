@@ -27,7 +27,6 @@ class Solver:
     Args:
         enable_progress_bar: If True, displays a progress bar.
         threshold: The candidate count threshold to switch from brute-force to random scoring.
-        seed: The random seed for consistent results with random scoring.
 
     Examples:
         answer = "정답"
@@ -49,7 +48,6 @@ class Solver:
         self.word2mean_score: dict[Word, float] = {}
         self.enable_progress_bar = enable_progress_bar
         self.threshold = threshold
-        self.rng = np.random.default_rng(seed)
         self.num_candidates = len(self.candidates)
 
     def suggest(self) -> tuple[Word, float]:
@@ -61,7 +59,7 @@ class Solver:
         self._clear()
         if not self.use_bruteforce:
             return self._select_max_jamo_frequency_score_word()
-        self._update_scores()
+        self._update_scores_bruteforce()
         self.word2mean_score = self._reduce_scores_by_word()
         return self._select()
 
@@ -79,9 +77,6 @@ class Solver:
         best_word = max(word2jamo_score, key=word2jamo_score.get)
         best_score = word2jamo_score[best_word]
         return best_word, best_score
-
-    def _update_scores(self) -> None:
-        self._update_scores_bruteforce()
 
     def _update_scores_bruteforce(self) -> None:
         candidates = tqdm(self.candidates) if self.enable_progress_bar else self.candidates
