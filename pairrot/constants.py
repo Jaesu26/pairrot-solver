@@ -1,6 +1,5 @@
-from pairrot.types import Jamo, Position
+from pairrot.types import Jamo
 
-INDEX_BY_POSITION: dict[Position, int] = {"first": 0, "second": 1}
 NUM_SYLLABLES = 11172
 BASE_CODE = 0xAC00
 CHOSUNG_BASE = 588

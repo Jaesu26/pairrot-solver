@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar
+from typing import Type, TypeVar
 
-from pairrot.constants import INDEX_BY_POSITION
-from pairrot.types import Position, Syllable, Word
+from pairrot.types import HintName, Position, Syllable, Word
 from pairrot.utils import decompose_hangul
 
 _T = TypeVar("_T")
@@ -209,3 +208,32 @@ class Carrot(Hint):
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:
         """Checks if the direct syllable is identical to the reference."""
         return self.syllable == syllable_direct
+
+
+def compute_hint_pair(*, true: Word, pred: Word) -> tuple[Hint, Hint]:
+    first_hint = _compute_hint(true=true, pred=pred, position="first")
+    second_hint = _compute_hint(true=true, pred=pred, position="second")
+    return first_hint, second_hint
+
+
+def _compute_hint(*, true: Word, pred: Word, position: Position) -> Hint:
+    index = INDEX_BY_POSITION[position]
+    syllable_pred = pred[index]
+    for cls in Hint.__subclasses__():
+        hint = cls(syllable_pred, position=position)
+        if not hint.is_compatible(true):
+            continue
+        return hint
+    raise RuntimeError("The hint could not be specified.")
+
+
+INDEX_BY_POSITION: dict[Position, int] = {"first": 0, "second": 1}
+HINT_BY_NAME: dict[HintName, Type[Hint]] = {
+    "사과": Apple,
+    "바나나": Banana,
+    "가지": Eggplant,
+    "마늘": Garlic,
+    "버섯": Mushroom,
+    "당근": Carrot,
+}
+NAME_BY_HINT: dict[Type[Hint], HintName] = {hint: name for name, hint in HINT_BY_NAME.items()}
