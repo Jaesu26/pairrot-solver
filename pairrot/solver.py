@@ -72,6 +72,9 @@ class Solver(ABC):
         ]
         self.num_candidates = len(self.candidates)
 
+    def ban(self, word: Word) -> None:
+        self.feedback(word, "사과", "사과")
+
     def solve(self, answer: Word) -> list[Word]:
         self.reset()
         history = []
