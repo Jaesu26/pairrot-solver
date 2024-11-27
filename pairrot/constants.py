@@ -2,8 +2,8 @@ from pairrot.types import Jamo
 
 NUM_SYLLABLES = 11172
 BASE_CODE = 0xAC00
-CHOSUNG_BASE = 588
-JUNGSUNG_BASE = 28
+CHOSUNG_BASE_CODE = 588
+JUNGSUNG_BASE_CODE = 28
 CHOSUNGS: list[Jamo] = [
     "ㄱ",
     "ㄲ",

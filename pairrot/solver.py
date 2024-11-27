@@ -1,18 +1,14 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import ClassVar
+from typing import Literal
 
 import numpy as np
 from tqdm.auto import tqdm
 
-from pairrot.hints import HINT_BY_NAME, NAME_BY_HINT, Hint, compute_hint_pair
+from pairrot.hints import HINT_BY_NAME, Hint, compute_hint_pair
 from pairrot.types import HintName, Jamo, Word
-from pairrot.utils import compute_jamo_frequency_by_word, compute_jamo_frequency_score, decompose_hangul, is_hangul
+from pairrot.utils import compute_jamo_frequency_score, decompose_hangul, get_frequency_by_jamo, is_hangul
 from pairrot.vocab import _VOCAB
-
-
-def _hint2name(hint: Hint) -> HintName:
-    return NAME_BY_HINT[hint.__class__]
 
 
 class Solver(ABC):
@@ -27,12 +23,15 @@ class Solver(ABC):
         solver.feedback(best_word, "사과", "사과")
     """
 
-    higher_is_better: ClassVar[bool]
-
     def __init__(self) -> None:
         self.vocab = _VOCAB.copy()
         self.candidates = self.vocab.copy()
         self.num_candidates = len(self.candidates)
+
+    @property
+    @abstractmethod
+    def higher_is_better(self) -> bool:
+        """Current information about best score returned by suggest method."""
 
     @abstractmethod
     def suggest(self) -> tuple[Word, float]:
@@ -71,6 +70,7 @@ class Solver(ABC):
         self.candidates = [
             word for word in self.candidates if jamo in set(decompose_hangul(word[0])) | set(decompose_hangul(word[1]))
         ]
+        self.num_candidates = len(self.candidates)
 
     def solve(self, answer: Word) -> list[Word]:
         self.reset()
@@ -81,9 +81,8 @@ class Solver(ABC):
             if best_word == answer:
                 break
             first_hint, second_hint = compute_hint_pair(true=answer, pred=best_word)
-            first_hint_name = _hint2name(first_hint)
-            second_hint_name = _hint2name(second_hint)
-            self.feedback(best_word, first_hint_name, second_hint_name)
+            self.candidates = self._filter_candidates(first_hint, second_hint)
+            self.num_candidates = len(self.candidates)
         return history
 
 
@@ -102,13 +101,15 @@ class BruteForceSolver(Solver):
         solver.feedback(best_word, "사과", "사과")
     """
 
-    higher_is_better = False
-
     def __init__(self, enable_progress_bar: bool = True) -> None:
         super().__init__()
         self.enable_progress_bar = enable_progress_bar
         self.word2scores: defaultdict[Word, list[int]] = defaultdict(list)
         self.word2mean_score: dict[Word, float] = {}
+
+    @property
+    def higher_is_better(self) -> Literal[False]:
+        return False
 
     def suggest(self) -> tuple[Word, float]:
         """Suggests the best word based on current candidate scores.
@@ -169,7 +170,9 @@ class MaximumEntropySolver(Solver):
         solver.feedback(best_word, "사과", "사과")
     """
 
-    higher_is_better = True
+    @property
+    def higher_is_better(self) -> Literal[True]:
+        return True
 
     def suggest(self) -> tuple[Word, float]:
         """Suggests the best word based on current candidate scores.
@@ -180,7 +183,7 @@ class MaximumEntropySolver(Solver):
         return self._select()
 
     def _select(self) -> tuple[Word, int]:
-        jamo2frequency = compute_jamo_frequency_by_word(self.candidates)
+        jamo2frequency = get_frequency_by_jamo(self.candidates)
         word2jamo_score = {word: compute_jamo_frequency_score(word, jamo2frequency) for word in self.candidates}
         best_word = max(word2jamo_score, key=word2jamo_score.get)
         best_score = word2jamo_score[best_word]

@@ -3,11 +3,11 @@ from functools import lru_cache
 
 from pairrot.constants import (
     BASE_CODE,
-    CHOSUNG_BASE,
+    CHOSUNG_BASE_CODE,
     CHOSUNGS,
     JONGSUNG_SPLIT_MAP,
     JONGSUNGS,
-    JUNGSUNG_BASE,
+    JUNGSUNG_BASE_CODE,
     JUNGSUNG_SPLIT_MAP,
     JUNGSUNGS,
     NUM_SYLLABLES,
@@ -35,14 +35,14 @@ def is_hangul(syllable: Syllable) -> bool:
 @lru_cache(maxsize=NUM_SYLLABLES)
 def extract_chosung(syllable: Syllable) -> Jamo:
     code = ord(syllable) - BASE_CODE
-    index = code // CHOSUNG_BASE
+    index = code // CHOSUNG_BASE_CODE
     return CHOSUNGS[index]
 
 
 @lru_cache(maxsize=NUM_SYLLABLES)
 def extract_jungsung(syllable: Syllable) -> Jamo:
     code = ord(syllable) - BASE_CODE
-    index = (code % CHOSUNG_BASE) // JUNGSUNG_BASE
+    index = (code % CHOSUNG_BASE_CODE) // JUNGSUNG_BASE_CODE
     return JUNGSUNGS[index]
 
 
@@ -53,7 +53,7 @@ def _decompose_jungsung(jungsung: Jamo) -> tuple[Jamo, ...]:
 @lru_cache(maxsize=NUM_SYLLABLES)
 def extract_jongsung(syllable: Syllable) -> Jamo:
     code = ord(syllable) - BASE_CODE
-    index = code % JUNGSUNG_BASE
+    index = code % JUNGSUNG_BASE_CODE
     return JONGSUNGS[index]
 
 
@@ -61,7 +61,7 @@ def _decompose_jongsung(jongsung: Jamo) -> tuple[Jamo, ...]:
     return JONGSUNG_SPLIT_MAP.get(jongsung, (jongsung,)) if jongsung else ()
 
 
-def compute_jamo_frequency_by_word(words: list[Word]) -> dict[Jamo, int]:
+def get_frequency_by_jamo(words: list[Word]) -> dict[Jamo, int]:
     jamos: list[Jamo] = []
     for word in words:
         s1, s2 = word[0], word[1]
