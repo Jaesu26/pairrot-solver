@@ -191,3 +191,43 @@ class MaximumEntropySolver(Solver):
         best_word = max(word2jamo_score, key=word2jamo_score.get)
         best_score = word2jamo_score[best_word]
         return best_word, best_score
+
+
+class CombinedSolver(Solver):
+    def __init__(self, enable_progress_bar: bool = True, threshold: int = 500) -> None:
+        super().__init__()
+        self.bruteforce_solver = BruteForceSolver(enable_progress_bar)
+        self.max_entropy_solver = MaximumEntropySolver()
+        self.threshold = threshold
+
+    @property
+    def higher_is_better(self) -> bool:
+        return not self._use_bruteforce
+
+    @property
+    def _use_bruteforce(self) -> bool:
+        return self.num_candidates <= self.threshold
+
+    def suggest(self) -> tuple[Word, float]:
+        if self._use_bruteforce:
+            return self.bruteforce_solver.suggest()
+        return self.max_entropy_solver.suggest()
+
+    def feedback(self, pred: Word, first_hint_name: HintName, second_hint_name: HintName) -> None:
+        super().feedback(pred, first_hint_name, second_hint_name)
+        self._update_candidates_recursive()
+
+    def _update_candidates_recursive(self) -> None:
+        self.bruteforce_solver.candidates = self.candidates
+        self.max_entropy_solver.candidates = self.candidates
+        self.bruteforce_solver.num_candidates = self.num_candidates
+        self.max_entropy_solver.num_candidates = self.num_candidates
+
+    def feedback_pumpkin_hint(self, jamo: Jamo) -> None:
+        super().feedback_pumpkin_hint(jamo)
+        self._update_candidates_recursive()
+
+    def reset(self) -> None:
+        super().reset()
+        self.bruteforce_solver.reset()
+        self.max_entropy_solver.reset()
