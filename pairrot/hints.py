@@ -1,20 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar
+from typing import Literal, Type
 
-from pairrot.constants import INDEX_BY_POSITION
 from pairrot.hangul.types import Syllable, Word
 from pairrot.hangul.utils import decompose_hangul
-from pairrot.types import Position
 
-_T = TypeVar("_T")
-
-
-def union(x: set[_T], y: set[_T]) -> set[_T]:
-    return x | y
-
-
-def intersection(x: set[_T], y: set[_T]) -> set[_T]:
-    return x & y
+Position = Literal["first", "second"]
+HintName = Literal["사과", "바나나", "가지", "마늘", "버섯", "당근"]
 
 
 class Hint(ABC):
@@ -68,7 +59,7 @@ class Apple(Hint):
     def has_common_jamo(self, syllable: Syllable) -> bool:
         """Checks if there are any common characters between the reference and given syllable."""
         jamos = set(decompose_hangul(syllable))
-        hit_count = len(intersection(self.jamo_set_criterion, jamos))
+        hit_count = len(self.jamo_set_criterion.intersection(jamos))
         return hit_count > 0
 
 
@@ -91,7 +82,7 @@ class Banana(Hint):
     def has_common_jamo(self, syllable: Syllable) -> bool:
         """Checks if there are common characters between the reference and the given syllable."""
         jamos = set(decompose_hangul(syllable))
-        hit_count = len(intersection(self.jamo_set_criterion, jamos))
+        hit_count = len(self.jamo_set_criterion.intersection(jamos))
         return hit_count > 0
 
 
@@ -114,7 +105,7 @@ class Eggplant(Hint):
     def has_single_common_jamo(self, syllable_direct: Syllable) -> bool:
         """Checks if there is exactly one common character between the reference and direct syllable."""
         jamos_direct = set(decompose_hangul(syllable_direct))
-        hit_direct_count = len(intersection(self.jamo_set_criterion, jamos_direct))
+        hit_direct_count = len(self.jamo_set_criterion.intersection(jamos_direct))
         return hit_direct_count == 1
 
 
@@ -144,7 +135,7 @@ class Garlic(Hint):
     def has_multiple_common_jamos(self, syllable_direct: Syllable) -> bool:
         """Checks if there are multiple common characters between the reference and direct syllable."""
         jamos_direct = set(decompose_hangul(syllable_direct))
-        hit_direct_count = len(intersection(self.jamo_set_criterion, jamos_direct))
+        hit_direct_count = len(self.jamo_set_criterion.intersection(jamos_direct))
         return hit_direct_count >= 2
 
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:
@@ -183,7 +174,7 @@ class Mushroom(Hint):
     def has_multiple_common_jamos(self, syllable_direct: Syllable) -> bool:
         """Checks if there are multiple common characters between the reference and direct syllable."""
         jamos_direct = set(decompose_hangul(syllable_direct))
-        hit_direct_count = len(intersection(self.jamo_set_criterion, jamos_direct))
+        hit_direct_count = len(self.jamo_set_criterion.intersection(jamos_direct))
         return hit_direct_count >= 2
 
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:
@@ -215,3 +206,15 @@ class Carrot(Hint):
     def is_equal_syllable(self, syllable_direct: Syllable) -> bool:
         """Checks if the direct syllable is identical to the reference."""
         return self.syllable == syllable_direct
+
+
+INDEX_BY_POSITION: dict[Position, int] = {"first": 0, "second": 1}
+HINT_BY_NAME: dict[HintName, Type[Hint]] = {
+    "사과": Apple,
+    "바나나": Banana,
+    "가지": Eggplant,
+    "마늘": Garlic,
+    "버섯": Mushroom,
+    "당근": Carrot,
+}
+NAME_BY_HINT: dict[Type[Hint], HintName] = {hint: name for name, hint in HINT_BY_NAME.items()}

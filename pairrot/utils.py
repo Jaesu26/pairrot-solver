@@ -1,7 +1,5 @@
-from pairrot.constants import INDEX_BY_POSITION
 from pairrot.hangul.types import Word
-from pairrot.hints import Hint
-from pairrot.types import Position
+from pairrot.hints import INDEX_BY_POSITION, Hint, Position
 
 
 def compute_hint_pair(*, true: Word, pred: Word) -> tuple[Hint, Hint]:

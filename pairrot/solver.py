@@ -5,11 +5,9 @@ from typing import Literal
 import numpy as np
 from tqdm.auto import tqdm
 
-from pairrot.constants import HINT_BY_NAME
 from pairrot.hangul.types import Jamo, Word
 from pairrot.hangul.utils import compute_jamo_frequency_score, decompose_hangul, get_frequency_by_jamo, is_hangul
-from pairrot.hints import Hint
-from pairrot.types import HintName
+from pairrot.hints import HINT_BY_NAME, Hint, HintName
 from pairrot.utils import compute_hint_pair
 from pairrot.vocab import _VOCAB
 
