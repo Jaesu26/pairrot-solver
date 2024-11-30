@@ -5,22 +5,22 @@ from typing import Literal
 import numpy as np
 from tqdm.auto import tqdm
 
-from pairrot.hints import HINT_BY_NAME, Hint, compute_hint_pair
-from pairrot.types import HintName, Jamo, Word
-from pairrot.utils import compute_jamo_frequency_score, decompose_hangul, get_frequency_by_jamo, is_hangul
+from pairrot.constants import HINT_BY_NAME
+from pairrot.hangul.types import Jamo, Word
+from pairrot.hangul.utils import compute_jamo_frequency_score, decompose_hangul, get_frequency_by_jamo, is_hangul
+from pairrot.hints import Hint
+from pairrot.types import HintName
+from pairrot.utils import compute_hint_pair
 from pairrot.vocab import _VOCAB
 
 
 class Solver(ABC):
-    """Suggests a word to minimize possible candidates through the `suggest` method,
-    and updates the candidates based on feedback using the `feedback` method.
+    """Abstract base class for solving Hangul word puzzles.
 
-    Examples:
-        answer = "정답"
-        solver = Solver()
-        best_word, best_score = solver.suggest()
-        print(best_word)  # "보류"
-        solver.feedback(best_word, "사과", "사과")
+    Attributes:
+        vocab: The entire vocabulary available for solving.
+        candidates: The list of remaining candidates based on feedback.
+        num_candidates: The number of remaining candidates.
     """
 
     def __init__(self) -> None:
@@ -31,14 +31,14 @@ class Solver(ABC):
     @property
     @abstractmethod
     def higher_is_better(self) -> bool:
-        """Current information about best score returned by suggest method."""
+        """Indicates whether a higher score is better for the `suggest` method."""
 
     @abstractmethod
     def suggest(self) -> tuple[Word, float]:
         """Suggests the best word based on current candidate scores.
 
         Returns:
-            A tuple containing the best word and its score.
+            tuple[Word, float]: The best word and its score.
         """
 
     def feedback(self, pred: Word, first_hint_name: HintName, second_hint_name: HintName) -> None:
@@ -90,18 +90,13 @@ class Solver(ABC):
 
 
 class BruteForceSolver(Solver):
-    """Suggests a word to minimize possible candidates through the `suggest` method,
-    and updates the candidates based on feedback using the `feedback` method.
-
-    Args:
-        enable_progress_bar: If True, displays a progress bar.
+    """
+    A solver that evaluates all candidate words and suggests the best one.
 
     Examples:
-        answer = "정답"
-        solver = Solver()
-        best_word, best_score = solver.suggest()
-        print(best_word)  # "보류"
-        solver.feedback(best_word, "사과", "사과")
+        >>> solver = BruteForceSolver()
+        >>> solver.suggest()
+        ("정답", 45.2)  # Example output
     """
 
     def __init__(self, enable_progress_bar: bool = True) -> None:
@@ -115,10 +110,15 @@ class BruteForceSolver(Solver):
         return False
 
     def suggest(self) -> tuple[Word, float]:
-        """Suggests the best word based on current candidate scores.
+        """Suggests the best word from the candidates based on scores.
 
         Returns:
-            A tuple containing the best word and its score.
+            The best word and its associated score.
+
+        Examples:
+            >>> solver = BruteForceSolver()
+            >>> solver.suggest()
+            ('정답', 4500)  # Example output
         """
         self._clear()
         self._update_scores()

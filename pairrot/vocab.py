@@ -1,6 +1,6 @@
 import os
 
-from pairrot.types import Word
+from pairrot.hangul.types import Word
 
 _VOCAB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/vocab.txt")
 

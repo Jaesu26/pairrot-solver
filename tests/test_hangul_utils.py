@@ -1,4 +1,4 @@
-from pairrot.utils import extract_chosung, extract_jungsung, extract_jongsung
+from pairrot.hangul.utils import decompose_hangul, extract_chosung, extract_jongsung, extract_jungsung
 
 
 def test_extract_chosung():
@@ -14,3 +14,8 @@ def test_extract_jungsung():
 def test_extract_jongsung():
     assert extract_jongsung("강") == "ㅇ"
     assert extract_jongsung("안") == "ㄴ"
+
+
+def test_decompose_hangul():
+    assert decompose_hangul("갉") == ("ㄱ", "ㅏ", "ㄹ", "ㄱ")
+    assert decompose_hangul("광") == ("ㄱ", "ㅗ", "ㅏ", "ㅇ")

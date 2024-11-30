@@ -1,77 +1,21 @@
-from collections import Counter
-from functools import lru_cache
-
-from pairrot.constants import (
-    BASE_CODE,
-    CHOSUNG_BASE_CODE,
-    CHOSUNGS,
-    JONGSUNG_SPLIT_MAP,
-    JONGSUNGS,
-    JUNGSUNG_BASE_CODE,
-    JUNGSUNG_SPLIT_MAP,
-    JUNGSUNGS,
-    NUM_SYLLABLES,
-)
-from pairrot.types import Jamo, Syllable, Word
+from pairrot.constants import INDEX_BY_POSITION
+from pairrot.hangul.types import Word
+from pairrot.hints import Hint
+from pairrot.types import Position
 
 
-@lru_cache(maxsize=NUM_SYLLABLES)
-def decompose_hangul(syllable: Syllable) -> tuple[Jamo, ...]:
-    if len(syllable) != 1:
-        raise ValueError(f"Input's length must be 1. Got: {syllable}")
-    if not is_hangul(syllable):
-        raise ValueError(f"Input must be korean. Got: {syllable}")
-    return (
-        extract_chosung(syllable),
-        *_decompose_jungsung(extract_jungsung(syllable)),
-        *_decompose_jongsung(extract_jongsung(syllable)),
-    )
+def compute_hint_pair(*, true: Word, pred: Word) -> tuple[Hint, Hint]:
+    first_hint = _compute_hint(true=true, pred=pred, position="first")
+    second_hint = _compute_hint(true=true, pred=pred, position="second")
+    return first_hint, second_hint
 
 
-def is_hangul(syllable: Syllable) -> bool:
-    return BASE_CODE <= ord(syllable) < BASE_CODE + NUM_SYLLABLES
-
-
-@lru_cache(maxsize=NUM_SYLLABLES)
-def extract_chosung(syllable: Syllable) -> Jamo:
-    code = ord(syllable) - BASE_CODE
-    index = code // CHOSUNG_BASE_CODE
-    return CHOSUNGS[index]
-
-
-@lru_cache(maxsize=NUM_SYLLABLES)
-def extract_jungsung(syllable: Syllable) -> Jamo:
-    code = ord(syllable) - BASE_CODE
-    index = (code % CHOSUNG_BASE_CODE) // JUNGSUNG_BASE_CODE
-    return JUNGSUNGS[index]
-
-
-def _decompose_jungsung(jungsung: Jamo) -> tuple[Jamo, ...]:
-    return JUNGSUNG_SPLIT_MAP.get(jungsung, (jungsung,))
-
-
-@lru_cache(maxsize=NUM_SYLLABLES)
-def extract_jongsung(syllable: Syllable) -> Jamo:
-    code = ord(syllable) - BASE_CODE
-    index = code % JUNGSUNG_BASE_CODE
-    return JONGSUNGS[index]
-
-
-def _decompose_jongsung(jongsung: Jamo) -> tuple[Jamo, ...]:
-    return JONGSUNG_SPLIT_MAP.get(jongsung, (jongsung,)) if jongsung else ()
-
-
-def get_frequency_by_jamo(words: list[Word]) -> dict[Jamo, int]:
-    jamos: list[Jamo] = []
-    for word in words:
-        s1, s2 = word[0], word[1]
-        jamos.extend(decompose_hangul(s1))
-        jamos.extend(decompose_hangul(s2))
-    return Counter(jamos)
-
-
-def compute_jamo_frequency_score(word: Word, jamo2frequency: dict[Jamo, int]) -> int:
-    s1, s2 = word[0], word[1]
-    jamos = list(set(decompose_hangul(s1)) | set(decompose_hangul(s2)))
-    score = sum([jamo2frequency[j] for j in jamos])
-    return score
+def _compute_hint(*, true: Word, pred: Word, position: Position) -> Hint:
+    index = INDEX_BY_POSITION[position]
+    syllable_pred = pred[index]
+    for cls in Hint.__subclasses__():
+        hint = cls(syllable_pred, position=position)
+        if not hint.is_compatible(true):
+            continue
+        return hint
+    raise RuntimeError("The hint could not be specified.")
