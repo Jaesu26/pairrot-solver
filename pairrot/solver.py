@@ -21,10 +21,13 @@ class Solver(ABC):
         num_candidates: The number of remaining candidates.
     """
 
+    _first_suggestion: tuple[Word, float]
+
     def __init__(self) -> None:
         self.vocab = _VOCAB.copy()
         self.candidates = self.vocab.copy()
         self.num_candidates = len(self.candidates)
+        self.is_first_suggestion = True
 
     @property
     @abstractmethod
@@ -38,6 +41,9 @@ class Solver(ABC):
         Returns:
             tuple[Word, float]: The best word and its score.
         """
+
+    def suggest_first(self) -> tuple[Word, float]:
+        return self._first_suggestion
 
     def feedback(self, pred: Word, first_hint_name: HintName, second_hint_name: HintName) -> None:
         """Filters candidates based on provided feedback hints.
@@ -55,6 +61,7 @@ class Solver(ABC):
         second_hint = HINT_BY_NAME[second_hint_name](pred[1], position="second")
         self.candidates = self._filter_candidates(first_hint, second_hint)
         self.num_candidates = len(self.candidates)
+        self.is_first_suggestion = False
 
     def _filter_candidates(self, first_hint: Hint, second_hint: Hint) -> list[Word]:
         return [word for word in self.candidates if first_hint.is_compatible(word) and second_hint.is_compatible(word)]
@@ -63,12 +70,14 @@ class Solver(ABC):
         """Resets the candidate list and clears scores for a fresh start."""
         self.candidates = self.vocab.copy()
         self.num_candidates = len(self.candidates)
+        self.is_first_suggestion = True
 
     def feedback_pumpkin_hint(self, jamo: Jamo) -> None:
         self.candidates = [
             word for word in self.candidates if jamo in set(decompose_hangul(word[0])) | set(decompose_hangul(word[1]))
         ]
         self.num_candidates = len(self.candidates)
+        self.is_first_suggestion = False
 
     def ban(self, word: Word) -> None:
         self.feedback(word, "사과", "사과")
@@ -171,6 +180,8 @@ class MaximumEntropySolver(Solver):
         solver.feedback(best_word, "사과", "사과")
     """
 
+    _first_suggestion = "권황", -1
+
     @property
     def higher_is_better(self) -> Literal[True]:
         return True
@@ -181,6 +192,8 @@ class MaximumEntropySolver(Solver):
         Returns:
             A tuple containing the best word and its score.
         """
+        if self.is_first_suggestion:
+            return self.suggest_first()
         return self._select()
 
     def _select(self) -> tuple[Word, int]:
