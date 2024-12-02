@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Literal
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -21,7 +20,7 @@ class Solver(ABC):
         num_candidates: The number of remaining candidates.
     """
 
-    _first_suggestion: tuple[Word, float]
+    _first_suggestion: Word
 
     def __init__(self) -> None:
         self.vocab = _VOCAB.copy()
@@ -29,20 +28,15 @@ class Solver(ABC):
         self.num_candidates = len(self.candidates)
         self.is_first_suggestion = True
 
-    @property
     @abstractmethod
-    def higher_is_better(self) -> bool:
-        """Indicates whether a higher score is better for the `suggest` method."""
-
-    @abstractmethod
-    def suggest(self) -> tuple[Word, float]:
+    def suggest(self) -> Word:
         """Suggests the best word based on current candidate scores.
 
         Returns:
             tuple[Word, float]: The best word and its score.
         """
 
-    def suggest_first(self) -> tuple[Word, float]:
+    def suggest_first(self) -> Word:
         return self._first_suggestion
 
     def feedback(self, pred: Word, first_hint_name: HintName, second_hint_name: HintName) -> None:
@@ -61,9 +55,9 @@ class Solver(ABC):
         second_hint = HINT_BY_NAME[second_hint_name](pred[1], position="second")
         self.candidates = self._filter_candidates(first_hint, second_hint)
         self.num_candidates = len(self.candidates)
-        self.is_first_suggestion = False
 
     def _filter_candidates(self, first_hint: Hint, second_hint: Hint) -> list[Word]:
+        self.is_first_suggestion = False
         return [word for word in self.candidates if first_hint.is_compatible(word) and second_hint.is_compatible(word)]
 
     def reset(self) -> None:
@@ -83,6 +77,8 @@ class Solver(ABC):
         self.feedback(word, "사과", "사과")
 
     def solve(self, answer: Word) -> list[Word]:
+        if answer not in self.vocab:
+            return []
         self.reset()
         history = []
         while True:
@@ -106,17 +102,15 @@ class BruteForceSolver(Solver):
         ("정답", 45.2)  # Example output
     """
 
+    _first_suggestion = "권황"
+
     def __init__(self, enable_progress_bar: bool = True) -> None:
         super().__init__()
         self.enable_progress_bar = enable_progress_bar
         self.word2scores: defaultdict[Word, list[int]] = defaultdict(list)
         self.word2mean_score: dict[Word, float] = {}
 
-    @property
-    def higher_is_better(self) -> Literal[False]:
-        return False
-
-    def suggest(self) -> tuple[Word, float]:
+    def suggest(self) -> Word:
         """Suggests the best word from the candidates based on scores.
 
         Returns:
@@ -127,6 +121,8 @@ class BruteForceSolver(Solver):
             >>> solver.suggest()
             ('정답', 4500)  # Example output
         """
+        if self.is_first_suggestion:
+            return self.suggest_first()
         self._clear()
         self._update_scores()
         self.word2mean_score = self._reduce_scores_by_word()
@@ -157,10 +153,8 @@ class BruteForceSolver(Solver):
         word2mean_score = dict(sorted(word2mean_score.items(), key=lambda item: (item[1], item[0])))
         return word2mean_score
 
-    def _select(self) -> tuple[Word, float]:
-        best_word = min(self.word2mean_score, key=self.word2mean_score.get)
-        best_score = self.word2mean_score[best_word]
-        return best_word, best_score
+    def _select(self) -> Word:
+        return min(self.word2mean_score, key=self.word2mean_score.get)
 
     def reset(self) -> None:
         """Resets the candidate list and clears scores for a fresh start."""
@@ -180,13 +174,9 @@ class MaximumEntropySolver(Solver):
         solver.feedback(best_word, "사과", "사과")
     """
 
-    _first_suggestion = "권황", -1
+    _first_suggestion = "권황"
 
-    @property
-    def higher_is_better(self) -> Literal[True]:
-        return True
-
-    def suggest(self) -> tuple[Word, float]:
+    def suggest(self) -> Word:
         """Suggests the best word based on current candidate scores.
 
         Returns:
@@ -196,12 +186,11 @@ class MaximumEntropySolver(Solver):
             return self.suggest_first()
         return self._select()
 
-    def _select(self) -> tuple[Word, int]:
+    def _select(self) -> Word:
         jamo2frequency = get_frequency_by_jamo(self.candidates)
         word2jamo_score = {word: compute_jamo_frequency_score(word, jamo2frequency) for word in self.candidates}
         best_word = max(word2jamo_score, key=word2jamo_score.get)
-        best_score = word2jamo_score[best_word]
-        return best_word, best_score
+        return best_word
 
 
 class CombinedSolver(Solver):
@@ -212,14 +201,10 @@ class CombinedSolver(Solver):
         self.threshold = threshold
 
     @property
-    def higher_is_better(self) -> bool:
-        return not self._use_bruteforce
-
-    @property
     def _use_bruteforce(self) -> bool:
         return self.num_candidates <= self.threshold
 
-    def suggest(self) -> tuple[Word, float]:
+    def suggest(self) -> Word:
         if self._use_bruteforce:
             return self.bruteforce_solver.suggest()
         return self.max_entropy_solver.suggest()
@@ -230,9 +215,11 @@ class CombinedSolver(Solver):
 
     def _update_candidates_recursive(self) -> None:
         self.bruteforce_solver.candidates = self.candidates
-        self.max_entropy_solver.candidates = self.candidates
         self.bruteforce_solver.num_candidates = self.num_candidates
+        self.bruteforce_solver.is_first_suggestion = False
+        self.max_entropy_solver.candidates = self.candidates
         self.max_entropy_solver.num_candidates = self.num_candidates
+        self.max_entropy_solver.is_first_suggestion = False
 
     def feedback_pumpkin_hint(self, jamo: Jamo) -> None:
         super().feedback_pumpkin_hint(jamo)

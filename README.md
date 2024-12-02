@@ -5,7 +5,7 @@
 ## A simple example
 
 ```python
-from solver import MaximumEntropySolver
+from pairrot.solver import MaximumEntropySolver
 
 answer = "정답"
 solver = MaximumEntropySolver()
@@ -17,7 +17,7 @@ print(history)
 ## Interactive play
 
 ```python
-from solver import MaximumEntropySolver
+from pairrot.solver import MaximumEntropySolver
 
 solver = MaximumEntropySolver()
 best_word = solver.suggest()  # best_word를 쌍근 게임에 직접 입력
