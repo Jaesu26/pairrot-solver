@@ -11,7 +11,8 @@ def dummy_candidates():
 def test_brute_force_solver_suggest(dummy_candidates):
     solver = BruteForceSolver()
     solver.candidates = dummy_candidates
-    best_word, _ = solver.suggest()
+    solver.is_first_suggestion = False
+    best_word = solver.suggest()
     assert best_word in dummy_candidates
 
 
@@ -25,7 +26,8 @@ def test_brute_force_solver_feedback(dummy_candidates):
 def test_maximum_entropy_solver_suggest(dummy_candidates):
     solver = MaximumEntropySolver()
     solver.candidates = dummy_candidates
-    best_word, _ = solver.suggest()
+    solver.is_first_suggestion = False
+    best_word = solver.suggest()
     assert best_word in dummy_candidates
 
 
