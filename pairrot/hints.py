@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Literal, Type
+from typing import Any, Literal, Type
 
 from pairrot.hangul.types import Syllable, Word
 from pairrot.hangul.utils import decompose_hangul
@@ -16,7 +16,7 @@ class Hint(ABC):
         index_indirect: Index of the indirect syllable based on the position.
     """
 
-    def __init__(self, position: Position) -> None:
+    def __init__(self, *args: Any, position: Position) -> None:
         if position not in {"first", "second"}:
             raise ValueError(f"position must be either first or second. Got: {position}")
         self.index_direct = INDEX_BY_POSITION[position]
@@ -50,7 +50,7 @@ class Apple(Hint):
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
-        super().__init__(position)
+        super().__init__(position=position)
         self.jamo_set_criterion = set(decompose_hangul(syllable))
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
@@ -73,7 +73,7 @@ class Banana(Hint):
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
-        super().__init__(position)
+        super().__init__(position=position)
         self.jamo_set_criterion = set(decompose_hangul(syllable))
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
@@ -96,7 +96,7 @@ class Eggplant(Hint):
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
-        super().__init__(position)
+        super().__init__(position=position)
         self.jamo_set_criterion = set(decompose_hangul(syllable))
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
@@ -120,7 +120,7 @@ class Garlic(Hint):
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
-        super().__init__(position)
+        super().__init__(position=position)
         self.syllable = syllable
         self.jamo_tuple_criterion = decompose_hangul(syllable)
         self.jamo_set_criterion = set(self.jamo_tuple_criterion)
@@ -159,7 +159,7 @@ class Mushroom(Hint):
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
-        super().__init__(position)
+        super().__init__(position=position)
         self.syllable = syllable
         self.jamo_tuple_criterion = decompose_hangul(syllable)
         self.jamo_set_criterion = set(self.jamo_tuple_criterion)
@@ -197,7 +197,7 @@ class Carrot(Hint):
     """
 
     def __init__(self, syllable: Syllable, *, position: Position) -> None:
-        super().__init__(position)
+        super().__init__(position=position)
         self.syllable = syllable
 
     def __call__(self, syllable_direct: Syllable, syllable_indirect: Syllable) -> bool:
