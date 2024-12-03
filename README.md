@@ -1,8 +1,10 @@
 # Pairrot Solver
 
-한국어 워들 쌍근 솔버
+Pairrot-Solver is a [쌍근](https://ssaangn.com/) solver.
 
-## A simple example
+`Pairrot` is a compound word of `pair` and `carrot`.
+
+## Solve 쌍근
 
 ```python
 from pairrot.solver import MaximumEntropySolver
@@ -20,7 +22,9 @@ print(history)
 from pairrot.solver import MaximumEntropySolver
 
 solver = MaximumEntropySolver()
-best_word = solver.suggest()  # best_word를 쌍근 게임에 직접 입력
-solver.feedback(best_word, "사과", "바나나")  # 쌍근 게임의 피드백을 solver에 전달
-# Repeat this until the game is over
+best_word = solver.suggest()  # Enter `best_word` directly into the 쌍근.
+print(best_word)
+# '권황'
+solver.feedback(best_word, "사과", "바나나")  # Deliver feedback from the 쌍근 to the solver.
+# Repeat this until 쌍근 is over.
 ```
