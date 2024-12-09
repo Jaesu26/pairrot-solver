@@ -34,7 +34,7 @@ dependencies = [
 
 [tool.setuptools]
 packages = { find = { include = ["pairrot*"], exclude = ["tests"] } }
-package-data = { "pairrot" = ["*.txt"] }
+package-data = { "pairrot" = ["data/vocab.txt"] }
 
 [tool.black]
 line-length = 120
