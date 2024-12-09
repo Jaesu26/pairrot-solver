@@ -1,3 +1,41 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pairrot-solver"
+version = "0.0.1a1"
+description = "A Python library for solving 쌍근 puzzles with various strategies."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+keywords = ["pairrot", "solver"]
+authors = [{ name = "Jaesu Han", email = "gkswotn9753@gmail.com" }]
+maintainers = [{ name = "Jaesu Han", email = "gkswotn9753@gmail.com" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "numpy>=1.24.4",
+    "tqdm>=4.66.4",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Jaesu26/pairrot-solver"
+
+[tool.setuptools]
+packages = { find = { include = ["pairrot"], exclude = ["tests"] } }
+package-data = { "pairrot" = ["*.txt"] }
+
 [tool.black]
 line-length = 120
 target-version = ["py310"]

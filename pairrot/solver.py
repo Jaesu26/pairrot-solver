@@ -14,10 +14,9 @@ from pairrot.vocab import _VOCAB
 class Solver(ABC):
     """Abstract base class for solving Hangul word puzzles.
 
-    Attributes:
-        vocab: The entire vocabulary available for solving.
-        candidates: The list of remaining candidates based on feedback.
-        num_candidates: The number of remaining candidates.
+    This class provides the foundational structure for specific solver
+    implementations, including methods for suggesting words, processing feedback,
+    and resetting the solver's state.
     """
 
     _first_suggestion: Word
@@ -33,7 +32,7 @@ class Solver(ABC):
         """Suggests the best word based on current candidate scores.
 
         Returns:
-            tuple[Word, float]: The best word and its score.
+            The best word suggestion.
         """
 
     def suggest_first(self) -> Word:
@@ -67,6 +66,11 @@ class Solver(ABC):
         self.is_first_suggestion = True
 
     def feedback_pumpkin_hint(self, jamo: Jamo) -> None:
+        """Filters candidates that contain the specified Jamo.
+
+        Args:
+            jamo: The Jamo character to match in the candidates.
+        """
         self.candidates = [
             word for word in self.candidates if jamo in set(decompose_hangul(word[0])) | set(decompose_hangul(word[1]))
         ]
@@ -74,9 +78,23 @@ class Solver(ABC):
         self.is_first_suggestion = False
 
     def ban(self, word: Word) -> None:
+        """Eliminates a specific word by applying the "사과" (reject) hint to both syllables.
+
+        Args:
+            word: The word to eliminate.
+        """
         self.feedback(word, "사과", "사과")
 
     def solve(self, answer: Word) -> list[Word]:
+        """Attempts to solve the puzzle by guessing the correct answer.
+
+        Args:
+            answer: The correct answer to solve.
+
+        Returns:
+            The sequence of words suggested to reach the answer.
+            Returns an empty list if the answer is not in the vocabulary.
+        """
         if answer not in self.vocab:
             return []
         self.reset()
@@ -93,13 +111,10 @@ class Solver(ABC):
 
 
 class BruteForceSolver(Solver):
-    """
-    A solver that evaluates all candidate words and suggests the best one.
+    """A solver that evaluates all candidate words to find the best suggestion.
 
-    Examples:
-        >>> solver = BruteForceSolver()
-        >>> solver.suggest()
-        ("정답", 45.2)  # Example output
+    This solver computes scores for each candidate by considering its compatibility
+    with all other candidates, making it thorough but computationally intensive.
     """
 
     _first_suggestion = "권황"
@@ -114,12 +129,7 @@ class BruteForceSolver(Solver):
         """Suggests the best word from the candidates based on scores.
 
         Returns:
-            The best word and its associated score.
-
-        Examples:
-            >>> solver = BruteForceSolver()
-            >>> solver.suggest()
-            ('정답', 4500)  # Example output
+            The best word suggestion.
         """
         if self.is_first_suggestion:
             return self.suggest_first()
@@ -157,30 +167,25 @@ class BruteForceSolver(Solver):
         return min(self.word2mean_score, key=self.word2mean_score.get)
 
     def reset(self) -> None:
-        """Resets the candidate list and clears scores for a fresh start."""
+        """Resets the solver and clears cached scores."""
         super().reset()
         self._clear()
 
 
 class MaximumEntropySolver(Solver):
-    """Suggests a word to minimize possible candidates through the `suggest` method,
-    and updates the candidates based on feedback using the `feedback` method.
+    """A solver that minimizes possible candidates by maximizing entropy.
 
-    Examples:
-        answer = "정답"
-        solver = Solver()
-        best_word, best_score = solver.suggest()
-        print(best_word)  # "보류"
-        solver.feedback(best_word, "사과", "사과")
+    This solver selects a word that maximizes the diversity of feedback possibilities,
+    effectively reducing the candidate space in subsequent steps.
     """
 
     _first_suggestion = "권황"
 
     def suggest(self) -> Word:
-        """Suggests the best word based on current candidate scores.
+        """Suggests the best word based on entropy calculations.
 
         Returns:
-            A tuple containing the best word and its score.
+            The best word suggestion.
         """
         if self.is_first_suggestion:
             return self.suggest_first()
@@ -194,6 +199,12 @@ class MaximumEntropySolver(Solver):
 
 
 class CombinedSolver(Solver):
+    """A solver that combines BruteForceSolver and MaximumEntropySolver.
+
+    This solver uses MaximumEntropySolver when the candidate space is large and
+    switches to BruteForceSolver when the candidate space becomes smaller than a threshold.
+    """
+
     def __init__(self, enable_progress_bar: bool = True, threshold: int = 500) -> None:
         super().__init__()
         self.bruteforce_solver = BruteForceSolver(enable_progress_bar)
@@ -205,11 +216,23 @@ class CombinedSolver(Solver):
         return self.num_candidates <= self.threshold
 
     def suggest(self) -> Word:
+        """Suggests the best word by delegating to the appropriate sub-solver.
+
+        Returns:
+            The best word suggestion.
+        """
         if self._use_bruteforce:
             return self.bruteforce_solver.suggest()
         return self.max_entropy_solver.suggest()
 
     def feedback(self, pred: Word, first_hint_name: HintName, second_hint_name: HintName) -> None:
+        """Processes feedback and updates candidates in both sub-solvers.
+
+        Args:
+            pred: The predicted word used for feedback.
+            first_hint_name: The type of hint for the first syllable.
+            second_hint_name: The type of hint for the second syllable.
+        """
         super().feedback(pred, first_hint_name, second_hint_name)
         self._update_candidates_recursive()
 
@@ -226,6 +249,7 @@ class CombinedSolver(Solver):
         self._update_candidates_recursive()
 
     def reset(self) -> None:
+        """Resets the solver and its sub-solvers to their initial states."""
         super().reset()
         self.bruteforce_solver.reset()
         self.max_entropy_solver.reset()
