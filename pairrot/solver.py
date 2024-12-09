@@ -100,7 +100,7 @@ class Solver(ABC):
         self.reset()
         history = []
         while True:
-            best_word, _ = self.suggest()
+            best_word = self.suggest()
             history.append(best_word)
             if best_word == answer:
                 break
