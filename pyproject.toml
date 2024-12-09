@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pairrot-solver"
-version = "0.0.1a1"
+version = "0.0.2"
 description = "A Python library for solving 쌍근 puzzles with various strategies."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -33,7 +33,7 @@ dependencies = [
 "Homepage" = "https://github.com/Jaesu26/pairrot-solver"
 
 [tool.setuptools]
-packages = { find = { include = ["pairrot"], exclude = ["tests"] } }
+packages = { find = { include = ["pairrot*"], exclude = ["tests"] } }
 package-data = { "pairrot" = ["*.txt"] }
 
 [tool.black]

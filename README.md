@@ -4,6 +4,12 @@ Pairrot-Solver is a [쌍근](https://ssaangn.com/) solver.
 
 `Pairrot` is a compound word of `pair` and `carrot`.
 
+## Installation
+
+```
+pip install pairrot-solver
+```
+
 ## Solve 쌍근
 
 ```python
