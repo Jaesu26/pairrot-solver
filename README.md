@@ -7,7 +7,7 @@ Pairrot-Solver is a [쌍근](https://ssaangn.com/) solver.
 ## Installation
 
 ```
-pip install pairrot-solver
+pip install git+https://github.com/Jaesu26/pairrot-solver.git
 ```
 
 ## Solve 쌍근
