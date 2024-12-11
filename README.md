@@ -34,3 +34,9 @@ print(best_word)
 solver.feedback(best_word, "사과", "바나나")  # Deliver feedback from the 쌍근 to the solver.
 # Repeat this until 쌍근 is over.
 ```
+
+## List of solvers
+
+- [BruteForceSolver](https://github.com/Jaesu26/pairrot-solver/blob/main/pairrot/solver.py#L113)
+- [MaximumEntropySolver](https://github.com/Jaesu26/pairrot-solver/blob/main/pairrot/solver.py#L175)
+- [CombinedSolver](https://github.com/Jaesu26/pairrot-solver/blob/main/pairrot/solver.py#L201)
