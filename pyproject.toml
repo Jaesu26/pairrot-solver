@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pairrot-solver"
 version = "0.0.2"
-description = "A Python library for solving 쌍근 puzzles with various strategies."
+description = "A Python library for solving 쌍근 with various strategies."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
